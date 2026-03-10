@@ -1,0 +1,74 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About — Baniloo" currentPath="/about">
+  <section class="about-page">
+    <h1>About Baniloo</h1>
+
+    <div class="about-content">
+      <p>
+        I've always been more interested in the question underneath the question — not what to build, but why things are designed the way they are, and whether that's the right design or just the one nobody thought to question.
+      </p>
+
+      <p>
+        Most systems carry assumptions that were never made explicit. I think it's worth making them explicit — even when the answer turns out to be "this is more complicated than it seems."
+      </p>
+
+      <p>
+        Baniloo is where that thinking lives. I'm not a builder yet. I'm a thinker working toward building, and I try to hold that honestly.
+      </p>
+
+      <p>
+        The name comes from my parents' names — Bani and Niloo, a nickname for Mrityunjay. It felt right to build something under a name that meant something before this did.
+      </p>
+
+      <p>
+        If something here starts a conversation worth having, I'm reachable at <a href="mailto:tanaykashyap.dev@gmail.com">tanaykashyap.dev@gmail.com</a>.
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .about-page h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 48px;
+  }
+
+  .about-content {
+    max-width: 720px;
+  }
+
+  .about-content p {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.6em;
+  }
+
+  .about-content p:last-child {
+    margin-bottom: 0;
+  }
+
+  .about-content a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 150ms ease;
+  }
+
+  .about-content a:hover {
+    opacity: 0.8;
+  }
+
+  @media (max-width: 600px) {
+    .about-page h1 {
+      font-size: 32px;
+    }
+  }
+</style>

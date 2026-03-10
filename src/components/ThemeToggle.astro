@@ -1,0 +1,72 @@
+---
+---
+
+<button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+  <svg class="icon-moon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M13.5 9.5A6 6 0 0 1 6.5 2.5a6 6 0 1 0 7 7z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <svg class="icon-sun" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.3"/>
+    <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.22 3.22l1.06 1.06M11.72 11.72l1.06 1.06M3.22 12.78l1.06-1.06M11.72 4.28l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+  </svg>
+</button>
+
+<style>
+  .theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-2);
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 150ms ease;
+    margin-left: 8px;
+  }
+  .theme-toggle:hover {
+    color: var(--accent);
+  }
+  .icon-sun,
+  .icon-moon {
+    width: 16px;
+    height: 16px;
+  }
+  :global([data-theme="dark"]) .icon-moon {
+    display: none;
+  }
+  :global([data-theme="light"]) .icon-sun {
+    display: none;
+  }
+</style>
+
+<script>
+  function initTheme() {
+    const html = document.documentElement;
+
+    if (!localStorage.getItem('theme')) {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+    } else {
+      html.setAttribute('data-theme', localStorage.getItem('theme')!);
+    }
+  }
+
+  function setupToggle() {
+    const html = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+
+    btn?.addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+  }
+
+  initTheme();
+  setupToggle();
+
+  document.addEventListener('astro:after-swap', () => {
+    initTheme();
+    setupToggle();
+  });
+</script>

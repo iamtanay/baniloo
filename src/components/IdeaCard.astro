@@ -1,0 +1,164 @@
+---
+interface Props {
+  title: string;
+  description: string;
+  href: string;
+  status: 'active' | 'thinking' | 'dormant';
+  date: string;
+}
+
+const { title, description, href, status, date } = Astro.props;
+const isThinking = status === 'thinking';
+---
+
+<a href={isThinking ? '#' : href} class={`idea-card ${isThinking ? 'thinking-disabled' : ''}`} data-thinking-message={isThinking ? "This idea is in early thinking stage — not yet ready to share details" : undefined}>
+  <div class="idea-card-top">
+    <span class="idea-card-title">{title}</span>
+    <div class="idea-card-meta">
+      <span class={`status-badge ${status}`}>
+        {status}
+      </span>
+      <span class="idea-date">{date}</span>
+    </div>
+  </div>
+  <p class="idea-card-desc">{description}</p>
+</a>
+
+<style>
+  .idea-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    text-decoration: none;
+    display: block;
+    transition: border-color 150ms ease;
+  }
+
+  .idea-card:hover {
+    border-color: var(--accent);
+  }
+
+  .idea-card:hover .idea-card-title {
+    color: var(--accent);
+  }
+
+  .idea-card.thinking-disabled {
+    cursor: not-allowed;
+    position: relative;
+  }
+
+  .idea-card.thinking-disabled:hover {
+    border-color: var(--border);
+  }
+
+  .idea-card.thinking-disabled:hover .idea-card-title {
+    color: var(--text);
+  }
+
+  .idea-card.thinking-disabled::after {
+    content: attr(data-thinking-message);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12px;
+    color: var(--text-2);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+    z-index: 10;
+  }
+
+  .idea-card.thinking-disabled:hover::after {
+    opacity: 1;
+  }
+
+  .idea-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .idea-card-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    transition: color 150ms ease;
+  }
+
+  .idea-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .status-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+
+  .status-badge.active {
+    color: #4CAF82;
+    border-color: rgba(76, 175, 130, 0.3);
+    background: rgba(76, 175, 130, 0.07);
+  }
+
+  .status-badge.thinking {
+    color: var(--accent);
+    border-color: rgba(107, 138, 255, 0.3);
+    background: rgba(107, 138, 255, 0.07);
+  }
+
+  .status-badge.dormant {
+    color: var(--text-2);
+    border-color: var(--border);
+    background: transparent;
+  }
+
+  :global([data-theme="light"]) .status-badge.active {
+    color: #2E7D56;
+    border-color: rgba(46, 125, 86, 0.25);
+    background: rgba(46, 125, 86, 0.06);
+  }
+
+  :global([data-theme="light"]) .status-badge.thinking {
+    color: #3B5BDB;
+    border-color: rgba(59, 91, 219, 0.25);
+    background: rgba(59, 91, 219, 0.06);
+  }
+
+  .idea-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .idea-card-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .idea-card-top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+</style>

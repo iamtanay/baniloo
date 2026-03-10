@@ -1,0 +1,47 @@
+---
+title: "Starting with the problem, not the solution"
+date: 2024-11-01
+description: "Why LooMed begins with patient control, not hospital buy-in"
+---
+
+Most attempts at medical record interoperability start by trying to convince hospitals to cooperate. This is backwards.
+
+The fundamental problem isn't technical interoperability — it's control. Patients don't control their medical records. Hospitals do. And hospitals have no incentive to change that.
+
+So LooMed starts with a different question: **What if patients could build their own medical records, independent of hospital systems?**
+
+## The bootstrap problem
+
+If you start by assuming patients can request and receive their records (which is legally required in most jurisdictions), then you can build a patient-controlled record system without needing hospital cooperation first.
+
+Steps:
+1. Patient requests records from hospital (legal right)
+2. Hospital provides records (usually PDF or paper)
+3. Patient digitizes and stores in LooMed format
+4. Over time, patient accumulates complete history
+
+This is slow. It's manual. But it's **possible today** without changing hospital systems.
+
+## Growing from the edges
+
+Once patients have their own records:
+- They can share them selectively (new doctor, second opinion)
+- They can aggregate across multiple hospitals
+- They can add their own data (wearables, symptoms, notes)
+- They control access and revocation
+
+Eventually, if enough patients use this, hospitals have an incentive to make it easier. But the system doesn't depend on that happening.
+
+## What this means for design
+
+The protocol must:
+- Work with messy, inconsistent input formats
+- Allow gradual improvement of data quality
+- Support manual entry as a first-class citizen
+- Be useful even with partial records
+
+This is not elegant. But it's pragmatic. The perfect protocol that requires hospital cooperation will never exist. The imperfect one that patients can use today might actually get built.
+
+---
+
+Next: Figuring out the minimum viable data model.

@@ -1,0 +1,129 @@
+---
+import { ViewTransitions } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  currentPath?: string;
+}
+
+const {
+  title = 'Baniloo',
+  description = 'Ideas about distributed control, democratic infrastructure, and technology that doesn\'t ask for your trust.',
+  currentPath = '/'
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <ViewTransitions />
+  </head>
+  <body>
+    <div class="page">
+      <Header currentPath={currentPath} />
+      <main>
+        <slot />
+      </main>
+      <Footer />
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #0F0F0D;
+    --surface: #1A1A17;
+    --border: #2A2A25;
+    --text: #EDEAE3;
+    --text-2: #7A7870;
+    --accent: #6B8AFF;
+    --code-bg: #1E1E1A;
+    --code-text: #D4D0C8;
+  }
+
+  [data-theme="light"] {
+    --bg: #FAFAF8;
+    --surface: #F2F0EB;
+    --border: #E2DED6;
+    --text: #1C1C1A;
+    --text-2: #8A8680;
+    --accent: #3B5BDB;
+    --code-bg: #EEEAE3;
+    --code-text: #2D2D2A;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    line-height: 1.8;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .page {
+    opacity: 0;
+    animation: fadeIn 200ms ease forwards;
+  }
+
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 128px 48px 0;
+  }
+
+  a {
+    color: var(--text);
+    transition: color 150ms ease;
+  }
+
+  a:hover {
+    color: var(--accent);
+  }
+
+  .accent {
+    color: var(--accent);
+  }
+
+  @media (max-width: 600px) {
+    main {
+      padding: 96px 24px 0;
+    }
+  }
+</style>

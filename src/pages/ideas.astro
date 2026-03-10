@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+import IdeaCard from '../components/IdeaCard.astro';
+---
+
+<Layout title="Ideas — Baniloo" currentPath="/ideas">
+  <section class="ideas-page">
+    <h1>Ideas</h1>
+    <p class="page-intro">
+      Protocols, systems, and infrastructure. Some active. Some in progress. All worked through carefully.
+    </p>
+
+    <div class="ideas-list">
+      <IdeaCard
+        title="LooMed"
+        description="A protocol for patient-controlled medical records — portable, interoperable, and built without requiring hospitals to cooperate first."
+        href="/loomed"
+        status="active"
+        date="2024-11-01"
+      />
+      <IdeaCard
+        title="Untitled Protocol"
+        description="Exploring how the world will move from video-based learning to AI-influenced learning maps."
+        href="#"
+        status="thinking"
+        date="2025-02-14"
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .ideas-page h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .page-intro {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text-2);
+    margin-bottom: 48px;
+  }
+
+  .ideas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .ideas-page h1 {
+      font-size: 32px;
+    }
+  }
+</style>

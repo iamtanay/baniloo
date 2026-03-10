@@ -1,0 +1,146 @@
+---
+import Layout from '../layouts/Layout.astro';
+import IdeaCard from '../components/IdeaCard.astro';
+---
+
+<Layout currentPath="/">
+  <section class="hero">
+    <p class="section-label">Baniloo</p>
+    <h1>Most systems weren't designed — they accumulated.</h1>
+    <p class="hero-epigraph">
+      I'm interested in the ones worth redesigning from scratch.
+    </p>
+    <div class="hero-body">
+      <p>
+        I'm Tanay Kashyap. I think about why things are built the way they are, who that serves, and what a more deliberate version might look like. I work from first principles, with some humility about how hard that actually is.
+      </p>
+      <p>
+        These are ideas in progress. Some might be useful. Most are just thinking out loud.
+      </p>
+    </div>
+    <p class="hero-byline">— Tanay Kashyap</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="ideas-header">
+      <h2>Ideas</h2>
+      <a href="/ideas">All ideas →</a>
+    </div>
+
+    <div class="ideas-list">
+      <IdeaCard
+        title="LooMed"
+        description="A protocol for patient-controlled medical records — portable, interoperable, and built without requiring hospitals to cooperate first."
+        href="/loomed"
+        status="active"
+        date="2024-11-01"
+      />
+      <IdeaCard
+        title="Untitled Protocol"
+        description="Exploring how the world will move from video-based learning to AI-influenced learning maps."
+        href="#"
+        status="thinking"
+        date="2025-02-14"
+      />
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    margin-bottom: 64px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .hero-epigraph {
+    font-family: 'Fraunces', serif;
+    font-size: 17px;
+    font-style: italic;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 28px;
+  }
+
+  .hero-body {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .hero-body p + p {
+    margin-top: 1.6em;
+  }
+
+  .hero-byline {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    margin-top: 28px;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 64px 0;
+  }
+
+  .ideas-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .ideas-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .ideas-header a {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .ideas-header a:hover {
+    color: var(--accent);
+  }
+
+  .ideas-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .hero h1 {
+      font-size: 32px;
+    }
+  }
+</style>

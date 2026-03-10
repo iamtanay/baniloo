@@ -1,0 +1,74 @@
+---
+title: "LooMed — Technical Specification"
+date: 2024-11-01
+description: "Living technical specification for the LooMed protocol"
+---
+
+# LooMed — Technical Specification
+
+**Version 0.1 · Last updated November 2024**
+
+## Overview
+
+LooMed is a protocol for patient-controlled medical records. The goal is simple: give patients portable, interoperable access to their medical data without requiring hospitals to cooperate first.
+
+## Design Principles
+
+1. **Patient sovereignty** — Records belong to patients, not institutions
+2. **Zero-trust architecture** — No central authority required
+3. **Progressive decentralization** — Start practical, move toward distributed
+4. **Interoperability by design** — Standard formats, open protocols
+
+## Architecture
+
+### Data Model
+
+Medical records are structured as:
+
+```
+Record {
+  id: UUID
+  patient_id: UUID
+  timestamp: ISO8601
+  record_type: enum
+  data: EncryptedBlob
+  signature: Signature
+  metadata: Metadata
+}
+```
+
+### Storage Layer
+
+Records can be stored:
+- Patient-controlled cloud storage
+- Self-hosted servers
+- Distributed storage networks
+- Hospital systems (as fallback)
+
+### Access Control
+
+Access is granted via cryptographic capabilities:
+- Patient holds root key
+- Temporary access via time-limited tokens
+- Revocation through capability expiry
+- Audit log of all access
+
+## Implementation Status
+
+This is a living specification. Current status:
+
+- [x] Core data model defined
+- [x] Encryption scheme selected
+- [ ] Reference implementation in progress
+- [ ] Clinical validation pending
+- [ ] Regulatory review not started
+
+## Open Questions
+
+1. How to handle emergency access without compromising security?
+2. What's the minimum viable clinical use case?
+3. How to incentivize early adoption by patients?
+
+---
+
+This specification will evolve as the protocol is tested and refined.
