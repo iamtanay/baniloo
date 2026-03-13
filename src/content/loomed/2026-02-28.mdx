@@ -1,0 +1,55 @@
+---
+title: "Why LooMed exists"
+date: 2026-02-28
+description: "Starting from the problem, not the solution"
+---
+
+Medical records are the one piece of personal data that matters most when
+something goes wrong. And they are the one piece of personal data you have
+the least control over.
+
+Your records are scattered across every hospital and lab you have visited.
+You cannot take them with you. You cannot verify they have not been altered.
+You cannot see who has accessed them. The institution owns the data about
+your body.
+
+## The obvious solution nobody has shipped
+
+Patient-controlled medical records have been discussed for decades. The
+technical pieces exist. Encryption, digital signatures, portable storage —
+none of this is new.
+
+What has not existed is a protocol. Not an app, not a platform, not a startup
+that will eventually be acquired or shut down. A protocol — like HTTP, like
+git — that anyone can implement, extend, or build on top of.
+
+LooMed is an attempt to build that protocol.
+
+## Why now
+
+Three things made this feel possible to start:
+
+Cryptographic tooling has matured to the point where building a
+well-audited signing and encryption stack takes days, not months.
+
+Git proved that an append-only, hash-chained, signed commit model is
+something developers understand intuitively and trust. The mental model
+translates directly to medical records.
+
+The alternative — waiting for hospitals to cooperate — has not worked and
+will not work. Hospitals have no incentive to make records portable. The
+only way this gets built is if patients own the stack from the start.
+
+## What LooMed is not
+
+It is not a FHIR replacement. It is not a hospital system. It is not trying
+to convince any institution to change anything. It is a patient-owned ledger
+that institutions can choose to write to, with the patient's explicit consent.
+
+The goal is simple: a patient should be able to carry their complete medical
+history in their pocket, verify that nothing in it has been altered, and
+decide exactly who reads it and when.
+
+---
+
+Phase 1 is underway. Building the local vault and commit chain first.

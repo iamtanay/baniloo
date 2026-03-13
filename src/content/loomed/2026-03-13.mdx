@@ -1,0 +1,53 @@
+---
+title: "Phase 1 is complete"
+date: 2026-03-13
+description: "The local vault, the commit chain, and what was actually built"
+---
+
+Phase 1 of LooMed is done. Here is what was built and what it proves.
+
+## What Phase 1 is
+
+A fully working local vault. No cloud, no sync, no network. A patient
+can initialise a vault, commit medical records to it, inspect the history,
+and verify that nothing has been tampered with — entirely from the CLI,
+entirely offline.
+```bash
+loomed init
+loomed add --type lab_result -m "fasting blood glucose"
+loomed commit
+loomed log
+loomed show sha256:<commit_id>
+loomed verify --chain
+```
+
+## What is actually happening under the hood
+
+Every commit is signed with an ed25519 private key derived from the
+patient's passphrase via Argon2id. Every commit hashes the previous one
+via SHA-256, forming a tamper-evident chain. Every commit file on disk is
+AES-256-GCM encrypted. Tamper with any commit and every commit that follows
+it fails verification.
+
+The cryptography stack is entirely standard primitives. No novel
+constructions. No custom schemes.
+
+## What Phase 1 proves
+
+The chain model works. The same passphrase used during `loomed init` and
+`loomed commit` deterministically produces the same signing key, which
+means `loomed verify --chain` passes cleanly without any key persistence.
+This is the fundamental guarantee the rest of the protocol is built on.
+
+59 tests, 0 failures. The commit chain, the encryption, the signing, and
+the full vault lifecycle are all covered.
+
+## What comes next
+
+Phase 2 is cloud sync — encrypted backup, offline-first, deterministic
+conflict resolution when two commits are created against the same chain
+head. Phase 3 is consent tokens — time-bound, single-use, patient-signed
+access grants for institutions.
+
+The protocol is open. Apache 2.0. The specification and reference
+implementation are on GitHub.
