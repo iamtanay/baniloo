@@ -1,0 +1,177 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('pulsesyn');
+  return entries
+    .filter(entry => entry.slug !== 'spec')
+    .map(entry => ({
+      params: { slug: entry.slug },
+      props: { entry },
+    }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+---
+
+<Layout title={`${entry.data.title} — PulseSyn — Baniloo`} currentPath="/pulsesyn">
+  <article class="thinking-entry">
+    <div class="entry-header">
+      <a href="/pulsesyn" class="back-link">← PulseSyn</a>
+      <span class="entry-date">
+        {entry.data.date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}
+      </span>
+    </div>
+
+    <h1>{entry.data.title}</h1>
+
+    {entry.data.description && (
+      <p class="entry-description">{entry.data.description}</p>
+    )}
+
+    <div class="divider"></div>
+
+    <div class="entry-content">
+      <Content />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .thinking-entry {
+    max-width: 680px;
+  }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+  }
+
+  .back-link {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .back-link:hover {
+    color: var(--accent);
+  }
+
+  .entry-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .thinking-entry h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 36px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .entry-description {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text-2);
+    margin-bottom: 0;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+  }
+
+  .entry-content {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+  }
+
+  .entry-content :global(h2) {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin-top: 2.5em;
+    margin-bottom: 0.75em;
+  }
+
+  .entry-content :global(h3) {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 2em;
+    margin-bottom: 0.5em;
+  }
+
+  .entry-content :global(p) {
+    margin-bottom: 1.6em;
+  }
+
+  .entry-content :global(ul),
+  .entry-content :global(ol) {
+    padding-left: 1.5em;
+    margin-bottom: 1.6em;
+  }
+
+  .entry-content :global(li) {
+    margin-bottom: 0.5em;
+  }
+
+  .entry-content :global(code) {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+
+  .entry-content :global(pre) {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    overflow-x: auto;
+    margin-bottom: 1.6em;
+  }
+
+  .entry-content :global(pre code) {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+  }
+
+  .entry-content :global(blockquote) {
+    border-left: 3px solid var(--accent);
+    padding-left: 1.5em;
+    margin-left: 0;
+    color: var(--text-2);
+    font-style: italic;
+  }
+
+  @media (max-width: 600px) {
+    .thinking-entry h1 {
+      font-size: 28px;
+    }
+  }
+</style>

@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import IdeaCard from '../components/IdeaCard.astro';
+import { ideas } from '../data/ideas';
 ---
 
 <Layout title="Ideas — Baniloo" currentPath="/ideas">
@@ -11,20 +12,15 @@ import IdeaCard from '../components/IdeaCard.astro';
     </p>
 
     <div class="ideas-list">
-      <IdeaCard
-        title="LooMed"
-        description="A protocol for patient-controlled medical records — portable, interoperable, and built without requiring hospitals to cooperate first."
-        href="/loomed"
-        status="active"
-        date="2026-02-28"
-      />
-      <IdeaCard
-        title="Untitled Protocol"
-        description="Exploring how the world will move from video-based learning to AI-influenced learning maps."
-        href="#"
-        status="thinking"
-        date="2026-03-09"
-      />
+      {ideas.map((idea) => (
+        <IdeaCard
+          title={idea.title}
+          description={idea.description}
+          href={idea.href}
+          status={idea.status}
+          date={idea.date}
+        />
+      ))}
     </div>
   </section>
 </Layout>

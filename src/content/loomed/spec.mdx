@@ -1,74 +1,673 @@
 ---
 title: "LooMed — Technical Specification"
-date: 2026-02-28
-description: "Living technical specification for the LooMed protocol"
+date: 2026-03-01
+description: "Living technical specification for the LooMed protocol — Version 0.2"
 ---
 
-# LooMed — Technical Specification
+# LooMed — Protocol Specification
 
-**Version 0.1 · Last updated February 2026**
+**Version 0.2 · March 2026 · Status: Open for Community Contribution**
 
-## Overview
+*Git for Medical Records · Cryptographic Ownership · Offline-First Sync*
 
-LooMed is a protocol for patient-controlled medical records. The goal is simple: give patients portable, interoperable access to their medical data without requiring hospitals to cooperate first.
+Released under MIT Open Protocol License · [baniloo.com](https://baniloo.com)
 
-## Design Principles
+---
 
-1. **Patient sovereignty** — Records belong to patients, not institutions
-2. **Zero-trust architecture** — No central authority required
-3. **Progressive decentralization** — Start practical, move toward distributed
-4. **Interoperability by design** — Standard formats, open protocols
+## Abstract
 
-## Architecture
+LooMed is an open source protocol, not an application and not a platform. It is a protocol stack that anyone can implement, extend, or build upon. The reference implementation is open and free. Commercial or government applications built on top of it are the responsibility of their builders.
 
-### Data Model
+LooMed is best understood as: Git for Medical Records + Cryptographic Ownership + Offline-First Sync. The reference implementation is written in Rust. The protocol is licensed under Apache 2.0.
 
-Medical records are structured as:
+> **The Core Premise:** Medical data should belong to the patient, not the institution. LooMed flips the current model: instead of hospitals owning records, patients own their medical data — encrypted in a cloud vault accessible only via their identity credentials — and grant access to institutions when needed, for exactly as long as needed.
 
-```
-Record {
-  id: UUID
-  patient_id: UUID
-  timestamp: ISO8601
-  record_type: enum
-  data: EncryptedBlob
-  signature: Signature
-  metadata: Metadata
+---
+
+## 1. Core Philosophy
+
+LooMed is designed around a radical but simple premise: medical data should belong to the patient, not the institution. Today, healthcare data is fragmented across hospitals and diagnostic labs, locked inside proprietary systems with no portability, difficult to audit or trace, and controlled by institutions rather than the individuals it describes.
+
+LooMed flips this model. Patients own their medical data — encrypted in a cloud vault accessible only via their identity credentials — and grant access to institutions when needed, for exactly as long as needed.
+
+> **What LooMed Is Not:** LooMed is not an application. It is not a platform. It is a protocol stack that anyone can implement, extend, or build upon. The reference implementation is open and free. Commercial or government applications built on top of it are the responsibility of their builders.
+
+---
+
+## 2. Protocol Architecture
+
+Each layer of the stack solves a specific and isolated problem. The protocol core is implementation-agnostic. Any conforming implementation that correctly handles participant registration, signed commits, consent tokens, and hash chain integrity is a valid LooMed node.
+
+<div class="diagram">
+  <div class="diagram-label">Protocol Stack — Top to Bottom</div>
+  <div class="diagram-row">Applications <span class="dim">(built by third parties on top of the protocol)</span></div>
+  <div class="diagram-arrow">↑</div>
+  <div class="diagram-row">API Layer <span class="dim">(GraphQL / REST)</span></div>
+  <div class="diagram-arrow">↑</div>
+  <div class="diagram-row">LooMed Protocol Core</div>
+  <div class="diagram-arrow">↑</div>
+  <div class="diagram-row">Cryptographic Storage Engine</div>
+  <div class="diagram-arrow">↑</div>
+  <div class="diagram-row">Identity Provider Abstraction Layer</div>
+  <div class="diagram-arrow">↑</div>
+  <div class="diagram-row">Patient-Controlled Cloud Repository</div>
+</div>
+
+---
+
+## 3. Participant Identity Model
+
+Every actor in the LooMed protocol — patient, clinician, institution, device, or government body — is a participant with a unique, permanent, reusable identifier. Participant IDs follow a structured, human-readable format designed for global interoperability.
+
+### 3.1 ID Format
+
+IDs are composed of a type prefix, an optional institutional scope, and a base-32 encoded random identifier suffixed with a 2-character checksum (CRC-8 derived).
+
+<div class="diagram">
+  <div class="diagram-label">ID Structure</div>
+  <div class="diagram-row">Institution / Device / Government</div>
+  <div class="diagram-code">&lt;TYPE&gt;-&lt;SCOPE&gt;-&lt;BASE32_ID&gt;-&lt;CHECKSUM&gt;</div>
+  <div class="diagram-row" style="margin-top: 12px;">Patient</div>
+  <div class="diagram-code">&lt;TYPE&gt;-&lt;BASE32_ID&gt;-&lt;CHECKSUM&gt;</div>
+</div>
+
+| Type | Example ID |
+|------|-----------|
+| **Patient** | LMP-7XKQR2MNVB-F4 |
+| **Clinician** | LMD-APL-3NKWQ7HZRC-8A |
+| **Institution** | LMI-APL-2MVZK9QXBT-C2 |
+| **Device** | LMV-ROCHE-5QNZK8MXBT-D7 |
+| **Government** | LMG-AIIMS-4KZQR9WMNV-B3 |
+
+| Prefix | Participant Type |
+|--------|----------------|
+| **LMP** | Patient |
+| **LMD** | Doctor / Clinician |
+| **LMI** | Institution (hospital, lab, pharmacy, insurer) |
+| **LMV** | Device (diagnostic machine, analyzer) |
+| **LMG** | Government / Public Health Body |
+
+The scope segment (e.g., APL for Apollo, ROCHE for Roche) is optional for patients, required for institutions and devices. Patient IDs carry no personally identifiable information at the protocol level.
+
+### 3.2 Participant Registration Schema
+
+```json
+// Institution
+{
+  "participant_id": "LMI-APL-2MVZK9QXBT-C2",
+  "type": "institution",
+  "subtype": "hospital",
+  "name": "Apollo Hospitals",
+  "country": "IN",
+  "registered_at": "2026-01-15T08:00:00Z",
+  "public_key": "ed25519:AbCdEf...",
+  "verified": true,
+  "verification_body": "NMC",
+  "verification_ref": "NMC-INST-2026-00142"
 }
 ```
 
-### Storage Layer
+```json
+// Clinician
+{
+  "participant_id": "LMD-APL-3NKWQ7HZRC-8A",
+  "type": "clinician",
+  "name": "Dr. Priya Sharma",
+  "specialisation": "endocrinology",
+  "affiliated_inst": "LMI-APL-2MVZK9QXBT-C2",
+  "country": "IN",
+  "registered_at": "2026-01-20T09:00:00Z",
+  "public_key": "ed25519:XyZ123...",
+  "verified": true,
+  "verification_body": "NMC",
+  "verification_ref": "NMC-DOC-2026-01042"
+}
+```
 
-Records can be stored:
-- Patient-controlled cloud storage
-- Self-hosted servers
-- Distributed storage networks
-- Hospital systems (as fallback)
-
-### Access Control
-
-Access is granted via cryptographic capabilities:
-- Patient holds root key
-- Temporary access via time-limited tokens
-- Revocation through capability expiry
-- Audit log of all access
-
-## Implementation Status
-
-This is a living specification. Current status:
-
-- [x] Core data model defined
-- [x] Encryption scheme selected
-- [ ] Reference implementation in progress
-- [ ] Clinical validation pending
-- [ ] Regulatory review not started
-
-## Open Questions
-
-1. How to handle emergency access without compromising security?
-2. What's the minimum viable clinical use case?
-3. How to incentivize early adoption by patients?
+```json
+// Patient
+{
+  "participant_id": "LMP-7XKQR2MNVB-F4",
+  "type": "patient",
+  "registered_at": "2026-02-01T00:00:00Z",
+  "public_key": "ed25519:PqRsTu...",
+  "vault_uri": "loomed://LMP-7XKQR2MNVB-F4",
+  "idp_type": "national_registry",
+  "idp_ref": "IN-UIDAI"
+}
+```
 
 ---
 
-This specification will evolve as the protocol is tested and refined.
+## 4. Identity Provider Abstraction & Key Management
+
+This is one of the most important design decisions in LooMed. The protocol does not manage keys or identity directly. It defines an Identity Provider (IdP) interface that any conforming identity system must satisfy.
+
+### 4.1 The IdP Interface
+
+Any identity provider used with LooMed must be able to:
+
+1. Bind a real-world identity to a LooMed participant ID.
+2. Produce a cryptographic attestation (ed25519 signature) on behalf of the patient.
+3. Protect the private key such that the patient never handles raw key material directly.
+4. Support a recovery path if credentials are lost.
+
+The protocol defines the interface. Implementations choose the mechanism. This ensures LooMed remains a global protocol, not tied to any single country's infrastructure.
+
+### 4.2 Identity Tiers
+
+| Tier | Description |
+|------|-------------|
+| **Tier 1 — National Digital Identity (preferred)** | Where a national digital identity system exists, the patient's LooMed private key is derived from or protected by their national credential (e.g., Aadhaar OTP in India, eIDAS in the EU, DigiD in the Netherlands, BankID in Scandinavia, Login.gov in the US). The patient never stores or manages a raw private key. |
+| **Tier 2 — Biometric + Hardware Secure Enclave** | Where no national digital identity exists, the private key is generated inside and permanently bound to a hardware secure enclave (e.g., Apple Secure Enclave, Android StrongBox, or a YubiKey). Biometric authentication gates access to the key. |
+| **Tier 3 — Social / Custodial Recovery (fallback)** | Where neither a national identity nor a suitable device is available, LooMed implements Shamir Secret Sharing (SSS). The patient's private key is split into N shares (recommended: 5). K shares are required to reconstruct it (recommended: 3-of-5). |
+
+### 4.3 Key Derivation
+
+The LooMed keypair is an ed25519 keypair. In Tier 1 and Tier 2, the private key is derived deterministically from the identity credential using HKDF-SHA256 with a LooMed-specific domain separation string.
+
+### 4.4 Participant Verification
+
+Participant registration for clinicians and institutions requires attestation from a recognised verification body (NMC for clinicians in India, NABH for hospitals, etc.). Cross-border verification uses a web-of-trust model and is defined as a future extension (LooMed-WoT-v1).
+
+---
+
+## 5. Patient-Owned Cloud Repository
+
+At the centre of LooMed is the Patient Repository. Every patient has an encrypted data vault hosted on the cloud, accessible only via their private key. No institution, government, or infrastructure provider can read this data without the patient's explicit cryptographic consent.
+
+<div class="diagram">
+  <div class="diagram-label">Vault Address Format</div>
+  <div class="diagram-code">loomed://LMP-7XKQR2MNVB-F4/</div>
+  <div class="diagram-tree">
+    <div>records/</div>
+    <div>history/</div>
+    <div>permissions/</div>
+    <div>signatures/</div>
+    <div>lineage/</div>
+  </div>
+</div>
+
+The repository contains: lab reports, prescriptions, interpreted radiology reports, doctor notes, genetic markers, family history, medication timeline, vaccination history, surgical procedures, and diagnoses. Everything is cryptographically signed, append-only, and versioned.
+
+---
+
+## 6. Commit Structure & Git-Style Medical History
+
+Every medical event becomes a commit. The history of a patient's medical records is an immutable, append-only log of signed commits, analogous to a git repository.
+
+### 6.1 Commit Philosophy
+
+- Nothing is ever edited. Corrections are new commits that reference the original.
+- Nothing is ever deleted. Retraction is a new commit of type `retraction` with a `target_commit` reference.
+- Every commit is signed by the author's private key.
+- Every commit chains to the previous one via a hash, forming a tamper-evident ledger.
+
+### 6.2 Base Commit Schema
+
+```json
+{
+  "commit_id": "sha256:7f8e21a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8",
+  "previous_hash": "sha256:3a1b2c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+  "timestamp": "2026-02-01T10:32:00Z",
+  "patient_id": "LMP-7XKQR2MNVB-F4",
+  "author_id": "LMI-APL-2MVZK9QXBT-C2",
+  "authored_by": "LMD-APL-3NKWQ7HZRC-8A",
+  "record_type": "lab_result",
+  "message": "fasting blood glucose report",
+  "content_hash": "blake3:9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e",
+  "payload": {},
+  "signature": "ed25519:AbCdEfGhIj...",
+  "protocol_version": "0.2",
+  "sync_metadata": {
+    "created_offline": false,
+    "synced_at": "2026-02-01T10:33:12Z",
+    "pre_sync_previous_hash": null
+  }
+}
+```
+
+`commit_id` is SHA-256 of the entire commit object excluding the `commit_id` field itself. `content_hash` is BLAKE3 of the payload only. The genesis commit carries `"previous_hash": null`.
+
+---
+
+## 7. Hash Chain Integrity
+
+Every commit chains to the previous one. Chain integrity can be verified by any participant at any time. Tampering with any commit invalidates every commit that follows it.
+
+<div class="diagram">
+  <div class="diagram-label">Hash Chain Structure</div>
+  <div class="diagram-row">genesis_commit <span class="dim">(previous_hash: null)</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">commit_1 = SHA256(payload_1 + genesis_hash)</div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">commit_2 = SHA256(payload_2 + commit_1_hash)</div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">commit_n = SHA256(payload_n + commit_(n-1)_hash)</div>
+</div>
+
+---
+
+## 8. Conflict Resolution & Offline Sync
+
+### 8.1 Offline-First Design
+
+LooMed uses a local-first architecture for record creation. Records are created, signed, and committed locally without requiring network connectivity. Cloud sync is the eventual source of truth. This is critical for real-world healthcare environments: remote clinics, areas with poor connectivity, emergency conditions, and cross-border care.
+
+<div class="diagram">
+  <div class="diagram-label">Record Lifecycle</div>
+  <div class="diagram-row">record <span class="dim">→ created and signed locally</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><span class="dim">→ committed (assigned local commit_id)</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><span class="dim">→ queued for sync</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><span class="dim">→ synced to patient cloud vault when online</span></div>
+</div>
+
+### 8.2 The Conflict Problem
+
+Because commits are created offline, two or more institutions may independently create commits that reference the same `previous_hash`. This creates a fork in the commit chain — analogous to a git merge conflict — and must be resolved deterministically before the chain can be extended.
+
+### 8.3 Deterministic Sync Rebase
+
+LooMed resolves forks via a Sync Rebase algorithm. The protocol requires no human intervention and produces a canonical, linear chain from any set of concurrent offline commits.
+
+**Algorithm:**
+1. Detect fork: two or more commits share the same `previous_hash`.
+2. Collect all conflicting commits into a rebase set.
+3. Sort the rebase set: primary by timestamp ascending; secondary (tiebreaker) by `commit_id` lexicographically ascending.
+4. Re-link the sorted commits sequentially, updating `previous_hash` values to form a linear chain.
+5. Recompute `commit_id` for each re-linked commit since `previous_hash` has changed.
+6. Preserve the original `previous_hash` in `sync_metadata.pre_sync_previous_hash` for full audit traceability.
+7. Preserve the original signature — it remains valid against the original content. The rebase is a protocol operation, not a content modification.
+
+<div class="diagram">
+  <div class="diagram-label">Sync Rebase — Before and After</div>
+  <div class="diagram-row">Before sync <span class="dim">(fork at commit_A):</span></div>
+  <div class="diagram-branch">
+    <div>commit_A</div>
+    <div class="branch-left">├── commit_B <span class="dim">(10:31:00, Clinic X)</span></div>
+    <div class="branch-right">└── commit_C <span class="dim">(10:32:00, Lab Y)</span></div>
+  </div>
+  <div class="diagram-row" style="margin-top: 16px;">After Sync Rebase:</div>
+  <div class="diagram-row">commit_A</div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">commit_B <span class="dim">(unchanged content, original signature preserved)</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">commit_C' <span class="dim">(previous_hash updated, commit_id recomputed)</span></div>
+</div>
+
+Clock drift handling: the protocol accepts a clock skew tolerance of ±60 seconds. If two timestamps fall within this window, the lexicographic tiebreaker is applied.
+
+---
+
+## 9. Record Schemas by Type
+
+### 9.1 Lab Result
+
+```json
+{
+  "record_type": "lab_result",
+  "payload": {
+    "test_name": "Fasting Blood Glucose",
+    "test_code": "FBG",
+    "value": 98,
+    "unit": "mg/dL",
+    "reference_range": { "min": 70, "max": 99 },
+    "status": "normal",
+    "notes": "patient fasted for 10 hours prior"
+  }
+}
+```
+
+### 9.2 Prescription
+
+```json
+{
+  "record_type": "prescription",
+  "payload": {
+    "drug_name": "Metformin",
+    "drug_code": "MET500",
+    "dosage": "500mg",
+    "frequency": "twice daily",
+    "duration_days": 30,
+    "instructions": "take with meals",
+    "refills": 2,
+    "reason": "type 2 diabetes management",
+    "diagnosis_ref": "sha256:commit:1a2b3c4d..."
+  }
+}
+```
+
+### 9.3 Radiology Report
+
+Raw imaging files (DICOM, MRI, X-ray) are not stored in LooMed. The interpreted report is stored. The `report_id` is the reference used to retrieve raw files directly from the source institution. This is a first-class design decision, not a limitation.
+
+```json
+{
+  "record_type": "radiology_report",
+  "payload": {
+    "report_id": "APL-RAD-2026-00421",
+    "modality": "MRI",
+    "body_part": "lumbar spine",
+    "findings": "Mild disc bulge at L4-L5. No significant nerve root compression.",
+    "impression": "Grade 1 spondylolisthesis at L4-L5. Clinical correlation advised.",
+    "external_ref": {
+      "ref_id": "APL-RAD-2026-00421",
+      "ref_type": "pacs_imaging",
+      "custodian_id": "LMI-APL-2MVZK9QXBT-C2",
+      "description": "raw MRI DICOM files",
+      "retrieval": "contact custodian with ref_id"
+    }
+  }
+}
+```
+
+### 9.4 Vaccination
+
+```json
+{
+  "record_type": "vaccination",
+  "payload": {
+    "vaccine_name": "Covishield",
+    "vaccine_code": "AZ-COV19",
+    "manufacturer": "Serum Institute of India",
+    "batch_number": "SII-2021-B0041",
+    "dose_number": 1,
+    "total_doses": 2,
+    "site": "left deltoid",
+    "next_dose_due": "2021-04-12",
+    "programme": "National COVID-19 Vaccination Drive"
+  }
+}
+```
+
+### 9.5 Diagnosis
+
+```json
+{
+  "record_type": "diagnosis",
+  "payload": {
+    "condition": "Type 2 Diabetes Mellitus",
+    "icd_code": "E11",
+    "severity": "mild",
+    "onset": "2026-02-01",
+    "status": "active",
+    "notes": "Confirmed via FBG and HbA1c. Lifestyle modification advised alongside pharmacotherapy.",
+    "supporting_refs": ["sha256:7f8e21a4b3c2d1e0f9a8b7c6d5e4f3a2b1c0d9e8"]
+  }
+}
+```
+
+### 9.6 Surgical Procedure
+
+```json
+{
+  "record_type": "procedure",
+  "payload": {
+    "procedure_name": "Appendectomy",
+    "procedure_code": "47.09",
+    "type": "surgical",
+    "anaesthesia": "general",
+    "duration_minutes": 45,
+    "outcome": "successful",
+    "notes": "Laparoscopic approach. No complications. Patient discharged after 48 hours.",
+    "team": [
+      { "role": "surgeon", "participant_id": "LMD-APL-7MZNQ4KXBW-2R" },
+      { "role": "anaesthetist", "participant_id": "LMD-APL-5KQRZ8WMNB-6T" }
+    ],
+    "diagnosis_ref": "sha256:9a0b1c2d..."
+  }
+}
+```
+
+### 9.7 External Reference Standard
+
+Any record type may carry an `external_ref` block for linking to raw files, imaging archives, genomic databases, or any data that lives outside the LooMed ledger.
+
+```json
+{
+  "external_ref": {
+    "ref_id": "APL-RAD-2026-00421",
+    "ref_type": "pacs_imaging",
+    "custodian_id": "LMI-APL-2MVZK9QXBT-C2",
+    "description": "raw MRI DICOM files",
+    "retrieval": "contact custodian with ref_id"
+  }
+}
+```
+
+---
+
+## 10. Consent Token Model
+
+Most health systems offer binary consent: share record or do not share record. LooMed implements record-level, time-bound, single-use consent with full audit transparency.
+
+### 10.1 Token Schema
+
+```json
+{
+  "token_id": "lmt_7x9k2mP3qRnBzWv",
+  "issued_by": "LMP-7XKQR2MNVB-F4",
+  "issued_to": "LMI-INS-3XKBQ9WZNM-R8",
+  "issued_at": "2026-03-09T14:00:00Z",
+  "expires_at": "2026-03-09T18:00:00Z",
+  "scope": "full_record",
+  "purpose": "claim_verification",
+  "access_type": "read",
+  "one_time_use": true,
+  "used": false,
+  "patient_signature": "ed25519:IjKlMnOpQr..."
+}
+```
+
+Scope options: `full_record`, `record_type:<type>`, `commit:<commit_id>`, `date_range:<from>:<to>`. Read and write tokens are entirely separate and require separate patient issuance.
+
+### 10.2 Token Lifecycle
+
+- Tokens are single-use. Once presented, they are permanently marked as used and cannot be reused.
+- Tokens are time-bounded. Expiry is enforced by the protocol — any token presented after its `expires_at` is rejected.
+- Tokens are patient-signed. A token without a valid patient signature is invalid regardless of other fields.
+- A new token must be issued for every access event. There are no persistent access grants.
+
+---
+
+## 11. Access Event & Audit Trail
+
+Every access is logged immutably to the patient's vault. Patients can inspect this log at any time via `loomed audit`. No access occurs without a patient-issued token. No token is reusable.
+
+```json
+{
+  "event_id": "lme_4k2m9pX1zA8rNqW",
+  "record_owner_id": "LMP-7XKQR2MNVB-F4",
+  "accessed_by_id": "LMI-INS-3XKBQ9WZNM-R8",
+  "accessed_by_name": "HDFC Ergo Insurance",
+  "token_id": "lmt_7x9k2mP3qRnBzWv",
+  "timestamp": "2026-03-09T14:32:00Z",
+  "scope": "full_record",
+  "purpose": "claim_verification",
+  "duration_hours": 4,
+  "records_accessed": [
+    "sha256:7f8e21a4...",
+    "sha256:2b3c4d5e...",
+    "sha256:5e6f7a8b..."
+  ],
+  "signature": "ed25519:StUvWxYzAb..."
+}
+```
+
+---
+
+## 12. Key Compromise, Revocation & Historical Records
+
+### 12.1 Key Revocation
+
+When a patient suspects their private key has been compromised, they initiate a Key Revocation Event through their identity provider:
+
+1. Patient authenticates to their IdP via their recovery path.
+2. A new keypair is generated under the same IdP binding.
+3. A `key_rotation` commit is written to the vault, signed by both the old and new keys where the old key is still accessible, or by the recovery quorum where it is not.
+4. All participant registries that reference the old public key are updated with the new public key.
+5. All active consent tokens issued under the old key are immediately invalidated.
+
+### 12.2 Historical Records After Key Compromise
+
+- A `key_rotation` commit signals to all participants that prior tokens are invalid.
+- Historical records are re-encrypted under the new key by the patient's trusted sync agent during the next online session.
+- The re-encryption event is logged as a `vault_reencryption` commit with a reference to the `key_rotation` commit that triggered it.
+- Records committed before the rotation retain their original signatures, which remain valid against the original content and old key.
+
+> **Forward vs Backward Secrecy:** Forward secrecy — protection of future records from past key compromise — is fully solved by key rotation. Backward secrecy — protection of historical records from future key compromise — requires proactive re-encryption and is marked as an open design problem for LooMed-v1.
+
+---
+
+## 13. Interoperability Layer
+
+LooMed does not implement FHIR, HL7, or ABDM. It does not attempt to replace these standards. LooMed is a translation target. Applications and adapters built on top of LooMed may ingest data from any health data standard and translate it into LooMed commits.
+
+<div class="diagram">
+  <div class="diagram-label">Interoperability Stack</div>
+  <div class="diagram-row">Hospital EHR <span class="dim">(FHIR R4)</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">FHIR-to-LooMed Adapter <span class="dim">(application layer)</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">LooMed record commit</div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row">Patient cloud vault update</div>
+</div>
+
+> **Deliberate Separation of Concerns:** FHIR and HL7 are institutional exchange formats designed for complex query and reporting requirements. LooMed is a patient-owned, append-only ledger optimised for provenance, portability, and consent. They solve different problems. The adapter sits between them at the application layer, not the protocol layer.
+
+---
+
+## 14. AI and Research Layer
+
+Medical AI suffers from a significant problem: unknown data provenance. LooMed solves this with data lineage tracking built into every commit. Every record carries the device that produced it, the clinician who authored it, the institution responsible, and a cryptographic hash of the content.
+
+For AI researchers this enables dataset verification, bias detection, reproducible research, and consent-aware training. AI training access requires a patient-issued consent token scoped to `purpose: research`, same as any other access.
+
+---
+
+## 15. Genomic and Family Data
+
+Every family member who is also a LooMed participant is referenced by their participant ID, making the graph traversable and cryptographically verifiable.
+
+<div class="diagram">
+  <div class="diagram-label">Family Graph Example</div>
+  <div class="diagram-branch">
+    <div>LMP-7XKQR2MNVB-F4 <span class="dim">(patient)</span></div>
+    <div class="branch-left">├── LMP-2KZNQ8WXBM-A1 <span class="dim">(father — diabetes, ICD: E11)</span></div>
+    <div class="branch-left">├── LMP-5WQXN3KZMB-C9 <span class="dim">(mother — hypertension, ICD: I10)</span></div>
+    <div class="branch-right">└── LMP-9MNBK7ZXWQ-D2 <span class="dim">(grandmother — cancer, ICD: C80)</span></div>
+  </div>
+</div>
+
+Family links are stored as a separate commit type (`family_link`) and require consent from both the patient and the referenced family member before a link is established.
+
+---
+
+## 16. Performance Architecture
+
+Unlike most blockchain health proposals, LooMed focuses on performance and real-world usability. There is no global blockchain. The ledger is per-patient, which means scale is distributed by design. Sub-millisecond latency for commit verification is achievable with a Rust implementation.
+
+---
+
+## 17. Threat Model
+
+| Adversary | Mitigation |
+|-----------|-----------|
+| **Malicious Registered Institution** | Write access requires a write-scoped consent token issued by the patient. Even a fully compromised institution cannot write without patient consent. |
+| **Compromised Cloud Infrastructure** | All data is encrypted at rest with the patient's key. A breach exposes no readable medical data. |
+| **Replay Attack** | Tokens are single-use. Upon first presentation, they are permanently marked as `used: true`. |
+| **Expired Token Presentation** | Expiry is enforced at the protocol layer. A token presented after `expires_at` is unconditionally rejected. |
+| **Fraudulent Participant Registration** | Registration requires cryptographic attestation from a recognised verification body. All registrations are publicly auditable. |
+| **Key Theft from Device** | Tier 2: key bound to biometric in secure enclave, cannot be extracted. Tier 1: key bound to national credential. |
+| **Sync Manipulation** | Every commit is signed before leaving the device. A modified commit has an invalid signature and is rejected. |
+
+> **Out of Scope for v0.2:** State-level adversaries with quantum computing capability (post-quantum cryptography is a planned extension). Side-channel attacks on hardware secure enclaves. Social engineering of Shamir recovery custodians.
+
+---
+
+## 18. Pseudonymity, Privacy & Data Minimisation
+
+LooMed provides pseudonymity, not anonymity. Patient IDs carry no personally identifiable information at the protocol level. Name, date of birth, contact information, and demographics are stored only inside the patient's encrypted vault — never in the participant registry, never in commit metadata, and never in access event logs.
+
+Correlation attacks are a known limitation. Applications handling sensitive patient populations (HIV, mental health, reproductive health) should implement additional de-identification at the application layer.
+
+---
+
+## 19. Governance Model
+
+LooMed should be governed by a non-profit open source foundation, modelled on the Apache Software Foundation (ASF).
+
+| Governance Body | Role |
+|----------------|------|
+| **Board of Directors** | Non-profit governance and financial oversight. Seats allocated to categories of stakeholders — not individual organisations — to prevent capture. |
+| **Technical Steering Committee (TSC)** | Controls the protocol specification, versioning, and reference implementation. Membership earned by demonstrated technical contribution. |
+| **Regional Working Groups** | Country-specific implementation guidance (e.g., India Working Group for ABDM integration, EU Working Group for GDPR compliance). Advisory, not binding. |
+| **Community Contributors** | Any individual or organisation may contribute under Apache 2.0 or MIT. |
+
+The foundation bylaws must explicitly prohibit: any single organisation holding more than one Board seat; financial contributions granting protocol governance influence; proprietary extensions being presented as part of the core protocol.
+
+---
+
+## 20. Developer Ecosystem & CLI Reference
+
+```bash
+# Patient Vault Commands
+loomed init                                          # initialise vault and keypair
+loomed add --type <record_type> -m "description"    # stage a new record entry
+loomed commit                                        # sign and commit staged record
+loomed log                                           # view full commit history
+loomed show <commit_id>                              # inspect a specific commit
+loomed verify <commit_id>                            # verify integrity of a specific record
+loomed verify --chain                                # verify full hash chain from genesis
+
+# Sync Commands
+loomed sync                                          # sync committed records to cloud vault
+loomed sync --status                                 # show pending offline commits
+loomed sync --resolve                                # run Sync Rebase on detected forks
+
+# Consent and Access Commands
+loomed share <participant_id> --scope <scope> --duration <hours> --purpose <purpose>
+loomed revoke <token_id>                             # revoke an active consent token
+loomed audit                                         # inspect full access log
+loomed audit --entity <participant_id>               # filter audit log by entity
+
+# Key Management Commands
+loomed key rotate                                    # initiate key rotation (requires IdP)
+loomed key status                                    # show current key binding and IdP
+```
+
+---
+
+## 21. Protocol Design Principles Summary
+
+| Principle | Implementation |
+|-----------|---------------|
+| **Append-only** | No record is ever edited or deleted. |
+| **Participant-addressed** | Every actor has a permanent, typed, scoped participant ID. |
+| **Chain integrity** | SHA-256 hash chain across all commits. |
+| **Content integrity** | BLAKE3 hash of every payload. |
+| **Cryptographic authorship** | Every commit signed by author's private key. |
+| **Patient consent required** | No read or write access without patient-issued token. |
+| **Tokens are single-use** | One token, one access event, then permanently invalidated. |
+| **Files stay external** | LooMed stores interpretation and reference, not raw files. |
+| **Identity is abstract** | Protocol defines the IdP interface, not the mechanism. |
+| **Offline-first** | Records created and signed locally, synced when online. |
+| **Deterministic conflict resolution** | Sync Rebase produces canonical chain from any fork. |
+| **Pseudonymity** | No PII at protocol level; correlation is a known limitation. |
+| **Open governance** | Foundation model; no single owner of the protocol. |
+
+---
+
+## 22. Long-Term Vision
+
+If LooMed succeeds, it could evolve into a Global Patient Identity Layer — every person on earth with a verifiable, portable medical identity — a Medical Data Protocol — the universal language for patient-controlled health records — and an AI Research Infrastructure — the first globally auditable, consent-aware source of medical training data.
+
+> **The Patient at the Centre:** The patient becomes the central node of the healthcare graph. Institutions read from patients. Governments read from patients. Researchers read from patients — with consent, with accountability, and with full auditability.
+
+---
+
+*This specification is a living document. It will evolve as the protocol is tested, implemented, and refined.*

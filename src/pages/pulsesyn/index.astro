@@ -1,0 +1,303 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allEntries = await getCollection('pulsesyn');
+const thinkingEntries = allEntries
+  .filter(entry => entry.slug !== 'spec')
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Layout title="PulseSyn — Baniloo" currentPath="/pulsesyn">
+  <section class="pulsesyn-page">
+    <div class="pulsesyn-header">
+      <div class="pulsesyn-header-top">
+        <p class="section-label">Active</p>
+      </div>
+      <h1>PulseSyn</h1>
+      <p class="pulsesyn-intro">
+        An open protocol for validating claims. Take a specific, falsifiable assertion and a
+        pointer to evidence — run it through a reputation-weighted validator network — get back
+        a permanent, tamper-proof verdict.
+      </p>
+      <p class="pulsesyn-intro">
+        Not a platform, not a product. Infrastructure. Anyone can build on top of it.
+        No one owns it.
+      </p>
+      <a href="/pulsesyn/spec" class="spec-link">
+        Read the protocol specification →
+      </a>
+    </div>
+
+    {thinkingEntries.length > 0 && (
+      <>
+        <div class="divider"></div>
+
+        <section class="thinking-section">
+          <h2>Thinking</h2>
+          <p class="section-intro">
+            Notes in reverse chronological order. Each entry is a piece of reasoning, worked
+            through carefully.
+          </p>
+
+          <div class="thinking-list" id="thinkingList">
+            {thinkingEntries.map((entry) => (
+              <a href={`/pulsesyn/${entry.slug}`} class="thinking-card" data-entry-data={JSON.stringify({
+                slug: entry.slug,
+                title: entry.data.title,
+                description: entry.data.description,
+                date: entry.data.date.toISOString()
+              })}>
+                <div class="thinking-card-header">
+                  <span class="thinking-date">
+                    {entry.data.date.toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
+                </div>
+                <h3 class="thinking-title">{entry.data.title}</h3>
+                {entry.data.description && (
+                  <p class="thinking-desc">{entry.data.description}</p>
+                )}
+              </a>
+            ))}
+          </div>
+
+          <div class="pagination" id="pagination">
+            <button class="pagination-btn" id="prevBtn" disabled>← Previous</button>
+            <span class="pagination-info" id="pageInfo"></span>
+            <button class="pagination-btn" id="nextBtn">Next →</button>
+          </div>
+        </section>
+      </>
+    )}
+  </section>
+</Layout>
+
+<style>
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0;
+  }
+
+  .pulsesyn-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .pulsesyn-page h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  .pulsesyn-intro {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.2em;
+  }
+
+  .spec-link {
+    display: inline-block;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-decoration: none;
+    margin-top: 12px;
+    transition: color 150ms ease;
+  }
+
+  .spec-link:hover {
+    color: var(--accent);
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 64px 0;
+  }
+
+  .thinking-section h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .section-intro {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+    margin-bottom: 32px;
+  }
+
+  .thinking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .thinking-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    text-decoration: none;
+    display: block;
+    transition: border-color 150ms ease;
+  }
+
+  .thinking-card:hover { border-color: var(--accent); }
+  .thinking-card:hover .thinking-title { color: var(--accent); }
+  .thinking-card-header { margin-bottom: 8px; }
+
+  .thinking-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .thinking-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color 150ms ease;
+  }
+
+  .thinking-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 32px;
+  }
+
+  .pagination-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  .pagination-btn:hover:not(:disabled) {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .pagination-info {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  @media (max-width: 600px) {
+    .pulsesyn-page h1 { font-size: 32px; }
+  }
+</style>
+
+<script>
+  const ITEMS_PER_PAGE = 10;
+  let currentPage = 1;
+  let allEntries: Array<{slug: string, title: string, description: string, date: string}> = [];
+
+  function initPagination() {
+    const cards = document.querySelectorAll('.thinking-card');
+    allEntries = Array.from(cards).map(card => {
+      const data = card.getAttribute('data-entry-data');
+      return data ? JSON.parse(data) : null;
+    }).filter(Boolean);
+
+    if (allEntries.length <= ITEMS_PER_PAGE) {
+      const pagination = document.getElementById('pagination');
+      if (pagination) pagination.style.display = 'none';
+    } else {
+      showPage(1);
+    }
+  }
+
+  function showPage(page: number) {
+    currentPage = page;
+    const startIdx = (page - 1) * ITEMS_PER_PAGE;
+    const endIdx = startIdx + ITEMS_PER_PAGE;
+    const pageEntries = allEntries.slice(startIdx, endIdx);
+    const list = document.getElementById('thinkingList');
+    if (!list) return;
+
+    list.innerHTML = pageEntries.map(entry => {
+      const date = new Date(entry.date);
+      const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric'
+      });
+      return `
+        <a href="/pulsesyn/${entry.slug}" class="thinking-card">
+          <div class="thinking-card-header">
+            <span class="thinking-date">${formattedDate}</span>
+          </div>
+          <h3 class="thinking-title">${entry.title}</h3>
+          ${entry.description ? `<p class="thinking-desc">${entry.description}</p>` : ''}
+        </a>
+      `;
+    }).join('');
+
+    updatePaginationControls();
+  }
+
+  function updatePaginationControls() {
+    const totalPages = Math.ceil(allEntries.length / ITEMS_PER_PAGE);
+    const prevBtn = document.getElementById('prevBtn') as HTMLButtonElement;
+    const nextBtn = document.getElementById('nextBtn') as HTMLButtonElement;
+    const pageInfo = document.getElementById('pageInfo');
+    if (prevBtn) prevBtn.disabled = currentPage === 1;
+    if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+    if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+  }
+
+  function setupPaginationListeners() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    prevBtn?.addEventListener('click', () => { if (currentPage > 1) showPage(currentPage - 1); });
+    nextBtn?.addEventListener('click', () => {
+      const totalPages = Math.ceil(allEntries.length / ITEMS_PER_PAGE);
+      if (currentPage < totalPages) showPage(currentPage + 1);
+    });
+  }
+
+  initPagination();
+  setupPaginationListeners();
+  document.addEventListener('astro:after-swap', () => {
+    initPagination();
+    setupPaginationListeners();
+  });
+</script>

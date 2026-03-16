@@ -2,16 +2,16 @@
 import Layout from '../../layouts/Layout.astro';
 import { getEntry } from 'astro:content';
 
-const entry = await getEntry('loomed', 'spec');
-if (!entry) throw new Error('Spec not found');
+const entry = await getEntry('pulsesyn', 'spec');
+if (!entry) throw new Error('PulseSyn spec not found');
 
 const { Content } = await entry.render();
 ---
 
-<Layout title="LooMed Specification — Baniloo" currentPath="/loomed">
+<Layout title="PulseSyn Specification — Baniloo" currentPath="/pulsesyn">
   <article class="spec-page">
     <nav class="breadcrumb">
-      <a href="/loomed">← Back to LooMed</a>
+      <a href="/pulsesyn">← Back to PulseSyn</a>
     </nav>
 
     <div class="spec-content">
@@ -138,7 +138,7 @@ const { Content } = await entry.render();
   }
 
   .spec-content :global(pre) {
-    background: var(--surface);
+    background: var(--code-bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 20px;
@@ -152,7 +152,7 @@ const { Content } = await entry.render();
     padding: 0;
     font-size: 14px;
     line-height: 1.7;
-    color: var(--text);
+    color: var(--code-text);
   }
 
   .spec-content :global(blockquote) {

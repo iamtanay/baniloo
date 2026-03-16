@@ -1,0 +1,53 @@
+---
+title: "Why build PulseSyn"
+date: 2026-03-16
+description: "The problem, the structural insight, and the decisions made before a line of code was written."
+---
+
+This is not a technical note. It is the answer to a simpler question: why does PulseSyn exist, and what decisions were made before a single line of code was written?
+
+---
+
+## The problem
+
+We are living through a collapse of institutional trust in information. People do not trust traditional media. They do not trust social platforms. They do not trust governments to tell them what is true. And to be fair, this distrust is not irrational — it is earned through years of observing how centralised institutions handle information when it is inconvenient to them.
+
+The problem is not that bad actors exist. Bad actors have always existed. The problem is structural: every information system we have built places the authority to determine truth in the hands of a small number of people or institutions. When those people are wrong, biased, or compromised, the entire system fails.
+
+The responses to this crisis have been inadequate. Traditional fact-checking organisations are small, slow, and themselves subject to accusations of institutional bias. Platform content moderation is opaque and controlled by companies with commercial interests that do not always align with accuracy. Community fact-checking collapses into majority opinion, which is not the same as truth. AI detection tools produce verdicts without accountability and cannot explain their reasoning in a way that is auditable.
+
+None of these approaches ask the right question. They ask: *who do we trust to decide?* PulseSyn asks: *how do we build a system where trust is earned through demonstrated accuracy rather than assigned by authority?*
+
+The information trust crisis is not a content problem. It is an architecture problem. Every solution that tries to fix the content — better moderation, more fact-checkers, smarter algorithms — is treating a symptom. PulseSyn is an attempt to treat the disease: the absence of a transparent, decentralised, accountability-based infrastructure for claim validation.
+
+---
+
+## Day zero decisions
+
+These are the decisions made before any code was written. They are documented here so that anyone building on or contributing to PulseSyn understands not just what was decided but why.
+
+**Protocol, not product.** The first and most important decision. A product has an owner who can change its rules. A protocol is a published specification that anyone can implement. If PulseSyn is a platform, it becomes exactly what it is trying to replace.
+
+**Validate claims, not content.** Early thinking focused on content — validating videos, articles, images. The shift to validating claims rather than content was the most important intellectual clarification in the design process. Content is evidence. Claims are what we are actually trying to evaluate. This distinction makes the protocol genuinely content-type agnostic and separates the protocol's responsibility from the application's responsibility.
+
+**Expertise before democracy.** Pure democratic voting on claim validity does not produce truth. A thousand people voting on whether a clinical paper's methodology is valid does not make them collectively competent to evaluate it. Expertise is an emergent property of the chain rather than an assigned credential. Validators earn domain-specific reputation through accurate validation history. No authority assigns expertise. The chain observes it.
+
+**Domain-specific reputation.** A validator with deep expertise in environmental science is not automatically competent to evaluate geopolitical claims. Treating reputation as a single universal score would create a small class of universally trusted validators — recreating the centralisation problem in a new form. Reputation is domain-specific. You earn it separately in each domain. You lose it separately. This is how expertise actually works in the world.
+
+**No custom blockchain.** Building a custom chain adds enormous complexity without proportional benefit at this stage. The protocol uses smart contracts on an existing Ethereum L2 — Base or Polygon — inheriting the security of an established chain without the cost of building one from scratch.
+
+**Go as the protocol language.** Go was chosen over Rust and C++ for three reasons: readable code that contributors can onboard to quickly, excellent native support for the networking primitives the protocol needs, and faster iteration during design phases.
+
+**Minimal on-chain footprint.** The protocol stores only what consensus requires: claim records, validation records, and reputation scores. Content never touches the chain. This keeps the protocol lean, keeps costs low, and maintains the clean separation between the protocol's responsibilities and the application's responsibilities.
+
+---
+
+## Why now
+
+Three conditions are converging that make a protocol like PulseSyn viable now when it would not have been five years ago.
+
+Trust in centralised information systems has reached a historic low. The demand for transparent, accountable alternatives is real and growing. Blockchain infrastructure has matured to the point where deploying credible on-chain records is practical and inexpensive — this was not true in 2017. The broader public has developed enough familiarity with decentralised systems to engage with them as users and validators.
+
+PulseSyn does not need to replace existing media or fact-checking organisations to matter. It needs to do one thing well: provide a transparent, tamper-proof, publicly auditable record of claim validations that no single authority controls.
+
+If a journalist submits a claim that is suppressed on every major platform but survives permanently on PulseSyn's public record, the protocol has done its job. Protocols do not need to win to matter. They need to be correct when it counts.

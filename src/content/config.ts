@@ -9,6 +9,16 @@ const loomed = defineCollection({
   }),
 });
 
+const pulsesyn = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    date: z.date(),
+    description: z.string().optional(),
+  }),
+});
+
 export const collections = {
   loomed,
+  pulsesyn,
 };

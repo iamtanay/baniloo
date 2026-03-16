@@ -1,0 +1,513 @@
+---
+title: "PulseSyn — Protocol Specification"
+date: 2026-03-16
+description: "Living protocol specification for PulseSyn — Version 0.1"
+---
+
+# PulseSyn — Protocol Specification
+
+**Version 0.1 · March 2026 · Status: Draft — Open for Public Comment**
+
+*A Decentralized, Content-Agnostic Protocol for Validating Claims*
+
+Released under MIT Open Protocol License · [baniloo.com](https://baniloo.com)
+
+---
+
+## Abstract
+
+PulseSyn is an open, decentralized protocol for validating claims. It does not store content, render media, manage users, or moderate communities. It does one thing: take a structured, falsifiable claim submitted with a pointer to supporting evidence, run it through a reputation-weighted validator network, and produce a permanent, tamper-proof verdict.
+
+> **The Protocol's Single Responsibility:** Is the submitted evidence sufficient to support this claim?
+
+Everything else — content storage, content rendering, user interfaces, discovery, monetization, and moderation — is the responsibility of applications built on top of PulseSyn. This boundary is the protocol's most important design decision and it is permanent.
+
+PulseSyn is built in Go. On-chain records are stored as Solidity smart contracts deployed on an Ethereum L2. No custom chain is required.
+
+---
+
+## 1. Design Philosophy
+
+### 1.1 One Responsibility
+
+PulseSyn validates claims. That is its complete scope. The moment the protocol takes on content management, user moderation, or application logic it inherits the political, legal, and operational complexity that makes centralized platforms fragile and untrustworthy.
+
+> **The Separation Principle:** Content storage is the app's problem. Content rendering is the app's problem. Moderation is the app's problem. User identity beyond a public key is the app's problem. Claim validation is PulseSyn's problem. These responsibilities never cross.
+
+### 1.2 Claims Not Content
+
+The protocol validates claims. Content is evidence. A validator follows a URL to the content, reviews it, then returns to vote on whether the claim is supported by what they found. PulseSyn never touches the content. It knows the claim, the hash of the content for integrity verification, and the URL pointer. Nothing else.
+
+### 1.3 Expertise Before Democracy
+
+Pure democratic voting on claim validity produces popular opinion, not truth. PulseSyn is designed around a staged model of validator authority that mirrors how the real world builds institutional trust.
+
+- The network launches with genesis validators — individuals with demonstrated domain expertise who seed the reputation system.
+- As the chain grows, reputation scores emerge entirely from on-chain validation history. Earned reputation is the only measure of expertise.
+- The initial advantage of genesis validators decays naturally as the network matures. They hold no permanent privilege.
+
+### 1.4 Domain-Specific Reputation
+
+There are no universal experts in PulseSyn. Reputation is earned separately in each domain and carries no weight outside it. A validator with high reputation in environmental science has zero elevated influence when validating a geopolitical claim.
+
+### 1.5 No Custom Chain
+
+PulseSyn does not build or maintain its own blockchain. Validation records and reputation scores are stored as smart contracts on an existing Ethereum L2 — Base or Polygon. This decision trades theoretical maximum decentralisation for practical deployability.
+
+---
+
+## 2. Protocol Primitives
+
+PulseSyn defines four first-class data types. Everything the protocol does flows from these.
+
+### 2.1 The Claim
+
+The Claim is the central primitive. It is what validators evaluate. It must be falsifiable — a validator must be able to examine the evidence and reach a definitive position on whether the claim is supported.
+
+<div class="diagram">
+  <div class="diagram-label">Claim Schema</div>
+  <div class="diagram-row">claim_id         <span class="dim">: SHA3-256( claim_text + content_hash + submitter_id + timestamp )</span></div>
+  <div class="diagram-row">claim_text       <span class="dim">: Plain language assertion. Max 500 chars. Must be falsifiable.</span></div>
+  <div class="diagram-row">claim_type       <span class="dim">: FACTUAL | CONTEXTUAL | PREDICTIVE</span></div>
+  <div class="diagram-row">domain_tags      <span class="dim">: []string — domain classifiers e.g. ["science", "health"]</span></div>
+  <div class="diagram-row">geographic_scope <span class="dim">: LOCAL | NATIONAL | INTERNATIONAL</span></div>
+  <div class="diagram-row">time_reference   <span class="dim">: ISO 8601 — when the claimed event occurred</span></div>
+  <div class="diagram-row">content_hash     <span class="dim">: SHA3-256 of the evidence content (integrity verification)</span></div>
+  <div class="diagram-row">content_url      <span class="dim">: URL where validators access the evidence</span></div>
+  <div class="diagram-row">submitter_id     <span class="dim">: Public key hash of the submitting participant</span></div>
+  <div class="diagram-row">submission_epoch <span class="dim">: Block number at time of submission</span></div>
+</div>
+
+#### 2.1.1 Claim Types
+
+| Claim Type | Definition |
+|------------|-----------|
+| **FACTUAL** | A specific verifiable event occurred or a specific fact is true. Validators assess whether the evidence directly supports the assertion. The most tractable type — eventually suitable for broad validator pools. |
+| **CONTEXTUAL** | A framing or characterisation is accurate given the broader situation. Requires deeper domain knowledge. Higher minimum validator reputation required. |
+| **PREDICTIVE** | A projection is reasonable given current evidence. Evaluated on methodological soundness, not outcome. Retrospective reputation updates applied when outcomes resolve. |
+
+#### 2.1.2 Claim Validity Rules
+
+The protocol rejects claims that fail any of the following at submission time:
+
+1. `claim_text` must be a specific assertion, not a question or evaluation.
+2. `claim_text` must reference a subject, an action or state, and a time or context.
+3. `content_url` must return a non-empty response at submission time.
+4. `content_hash` must match the hash of the content at `content_url` at submission time.
+5. Submitter must have `global_reputation >= SUBMISSION_MIN_REPUTATION`.
+
+### 2.2 The Validator Record
+
+Every registered validator has a persistent on-chain record. This is the source of truth for their eligibility, reputation, and history.
+
+<div class="diagram">
+  <div class="diagram-label">Validator Record Schema</div>
+  <div class="diagram-row">validator_id       <span class="dim">: Public key hash</span></div>
+  <div class="diagram-row">genesis_validator  <span class="dim">: bool</span></div>
+  <div class="diagram-row">registration_epoch <span class="dim">: uint64</span></div>
+  <div class="diagram-row">domain_reputation  <span class="dim">: map[string]float64  // domain -> score [0.0, 1.0]</span></div>
+  <div class="diagram-row">global_reputation  <span class="dim">: float64             // weighted avg of domain scores</span></div>
+  <div class="diagram-row">participation_rate <span class="dim">: float64             // accepted / invited</span></div>
+  <div class="diagram-row">collusion_score    <span class="dim">: float64             // computed continuously</span></div>
+  <div class="diagram-row">bias_profile       <span class="dim">: map[string]float64  // domain -> bias coefficient</span></div>
+  <div class="diagram-row">active_cooldowns   <span class="dim">: []string            // claim_ids in cooldown</span></div>
+  <div class="diagram-row">status             <span class="dim">: ACTIVE | SUSPENDED | RETIRED</span></div>
+  <div class="diagram-row">total_validations  <span class="dim">: uint64</span></div>
+</div>
+
+### 2.3 The Vote
+
+<div class="diagram">
+  <div class="diagram-label">Vote Schema</div>
+  <div class="diagram-row">vote_id      <span class="dim">: SHA3-256( validator_id + claim_id + epoch )</span></div>
+  <div class="diagram-row">validator_id <span class="dim">: Public key hash</span></div>
+  <div class="diagram-row">claim_id     <span class="dim">: Reference to the Claim</span></div>
+  <div class="diagram-row">verdict      <span class="dim">: SUPPORTED | UNSUPPORTED | MISLEADING | INDETERMINATE</span></div>
+  <div class="diagram-row">confidence   <span class="dim">: float64  // validator-stated certainty [0.0, 1.0]</span></div>
+  <div class="diagram-row">commit_hash  <span class="dim">: SHA3-256( verdict + confidence + salt )</span></div>
+  <div class="diagram-row">salt         <span class="dim">: random bytes revealed in reveal phase</span></div>
+  <div class="diagram-row">epoch        <span class="dim">: Block number when vote was submitted</span></div>
+</div>
+
+### 2.4 The Validation Record
+
+Every finalized claim produces an immutable Validation Record stored on-chain permanently.
+
+<div class="diagram">
+  <div class="diagram-label">Validation Record Schema</div>
+  <div class="diagram-row">validation_id      <span class="dim">: SHA3-256( claim_id + finalization_epoch )</span></div>
+  <div class="diagram-row">claim_id           <span class="dim">: Reference to the validated Claim</span></div>
+  <div class="diagram-row">verdict            <span class="dim">: SUPPORTED | UNSUPPORTED | MISLEADING | INDETERMINATE</span></div>
+  <div class="diagram-row">confidence_score   <span class="dim">: float64    // aggregate weighted confidence</span></div>
+  <div class="diagram-row">validator_count    <span class="dim">: uint16</span></div>
+  <div class="diagram-row">domain_breakdown   <span class="dim">: map[string]string  // per-domain verdict distribution</span></div>
+  <div class="diagram-row">dispute_status     <span class="dim">: NONE | DISPUTED | RESOLVED</span></div>
+  <div class="diagram-row">finalization_epoch <span class="dim">: uint64</span></div>
+  <div class="diagram-row">merkle_root        <span class="dim">: bytes32    // root of validator vote merkle tree</span></div>
+</div>
+
+### 2.5 Verdict Definitions
+
+| Verdict | Meaning |
+|---------|---------|
+| **SUPPORTED** | The submitted evidence sufficiently supports the claim as stated. Not an absolute declaration of truth — a declaration that this evidence supports this claim. |
+| **UNSUPPORTED** | The evidence does not support the claim. The claim may still be true — the evidence simply fails to establish it. |
+| **MISLEADING** | The claim is technically supportable but uses framing, omission, or selective presentation to create a false impression. |
+| **INDETERMINATE** | Evidence is insufficient to reach a verdict. May trigger resubmission with stronger evidence or a larger validator set. |
+
+> **Why Not TRUE / FALSE?** PulseSyn declares whether evidence supports a claim — not whether the claim is absolutely true. This is epistemically honest. The protocol can only evaluate what is presented to it.
+
+---
+
+## 3. Validator Network
+
+### 3.1 Genesis Validators
+
+PulseSyn launches with up to 50 genesis validators — individuals with demonstrated domain expertise who provide the initial reputation base. They are not a permanent privileged class. All protocol rules apply to them identically from day one.
+
+<div class="diagram">
+  <div class="diagram-label">Genesis Validator Starting Conditions</div>
+  <div class="diagram-row">domain_reputation <span class="dim">0.75 in registered domains, 0.00 in all others</span></div>
+  <div class="diagram-row">global_reputation <span class="dim">average of registered domain scores</span></div>
+  <div class="diagram-row dim">All decay, update, and challenge rules apply identically from registration.</div>
+</div>
+
+### 3.2 Open Registration
+
+Open registration activates when the network reaches 500 finalized validations across at least 5 distinct domains. Any participant may then register by:
+
+1. Submitting a registration transaction with a minimum participation stake.
+2. Starting with `domain_reputation: 0.00` in all domains. No reputation can be transferred or purchased.
+3. Completing a calibration set — claims with established verdicts — to gain initial domain eligibility.
+
+### 3.3 Eligibility Per Claim
+
+| Eligibility Condition | Rule |
+|-----------------------|------|
+| **Minimum domain reputation** | `validator.domain_reputation[claim.domain_tags] >= ELIGIBILITY_THRESHOLD` (default 0.15) |
+| **No prior exposure** | Validator has not interacted with this `claim_id` or `content_url` before selection |
+| **No cooldown conflict** | `claim_id` not in `validator.active_cooldowns` |
+| **Bias check** | `validator.bias_profile[domain] < BIAS_EXCLUSION_THRESHOLD` (default 0.70) |
+| **Active status** | `validator.status == ACTIVE` |
+| **Online** | Validator sent readiness heartbeat in current epoch |
+
+### 3.4 Selection Algorithm
+
+Selection uses a commit-reveal scheme. The selection seed is derived from `claim_id` and the previous block hash and committed on-chain before any validator is notified.
+
+<div class="diagram">
+  <div class="diagram-label">Selection Steps</div>
+  <div class="diagram-row"><span class="step-tag">1</span> SEED COMMIT — seed derived and published on-chain. No validators notified yet.</div>
+  <div class="diagram-row"><span class="step-tag">2</span> ELIGIBLE POOL — all validators meeting eligibility conditions identified.</div>
+  <div class="diagram-row"><span class="step-tag">3</span> DOMAIN STRATIFICATION — eligible pool stratified by domain reputation.</div>
+  <div class="diagram-row"><span class="step-tag">4</span> BIAS STRATIFICATION — further grouped by bias profile within each stratum.</div>
+  <div class="diagram-row"><span class="step-tag">5</span> WEIGHTED RANDOM DRAW — final selection using composite score as weight.</div>
+  <div class="diagram-row"><span class="step-tag">6</span> REVEAL AND NOTIFY — selected validators revealed and notified. 2-hour window.</div>
+  <div class="diagram-row"><span class="step-tag">7</span> REPLACEMENT — non-responding validators replaced in composite score order.</div>
+</div>
+
+<div class="diagram">
+  <div class="diagram-label">Composite Selection Score</div>
+  <div class="diagram-row">score(v, c) =</div>
+  <div class="diagram-row">  <span class="dim">0.40 ×</span> domain_reputation(v, c.domain_tags)</div>
+  <div class="diagram-row">  <span class="dim">+ 0.25 ×</span> topic_accuracy(v, c.domain_tags)</div>
+  <div class="diagram-row">  <span class="dim">+ 0.20 ×</span> random_factor(v, seed)</div>
+  <div class="diagram-row">  <span class="dim">+ 0.10 ×</span> participation_rate(v)</div>
+  <div class="diagram-row">  <span class="dim">- 0.05 ×</span> bias_coefficient(v, c.domain_tags)</div>
+</div>
+
+### 3.5 Validator Set Sizes
+
+| Claim Context | Minimum Validator Set |
+|---------------|----------------------|
+| **FACTUAL claim, standard domain** | 11 validators |
+| **CONTEXTUAL claim** | 17 validators |
+| **PREDICTIVE claim** | 17 validators |
+| **High-sensitivity domain (health, legal, conflict)** | 25 validators |
+| **Dispute resolution panel** | 7 arbitrators |
+
+---
+
+## 4. Consensus Mechanism — Proof of Verification
+
+### 4.1 Commit-Reveal Voting
+
+Validators vote in two phases to prevent strategic herding — changing votes after seeing others' choices.
+
+- **COMMIT PHASE** — validator submits `SHA3-256( verdict + confidence + salt )`. Vote hidden.
+- **REVEAL PHASE** — validator submits plaintext verdict, confidence, and salt. Protocol verifies hash matches commit.
+- Validators who commit but do not reveal receive the abstention penalty.
+
+### 4.2 Vote Weighting
+
+<div class="diagram">
+  <div class="diagram-label">Vote Weight Formula</div>
+  <div class="diagram-row">weighted_vote(v, c) = verdict_vector(v) × confidence(v) × domain_reputation(v, c.domain_tags)</div>
+  <div class="diagram-row" style="margin-top: 10px;">verdict_vector <span class="dim">: one-hot encoding of verdict [SUPPORTED, UNSUPPORTED, MISLEADING, INDETERMINATE]</span></div>
+  <div class="diagram-row">confidence     <span class="dim">: validator-stated certainty [0.0, 1.0]</span></div>
+  <div class="diagram-row">domain_rep     <span class="dim">: validator's reputation score in claim's primary domain</span></div>
+</div>
+
+### 4.3 Bias Correction
+
+<div class="diagram">
+  <div class="diagram-label">Bias-Adjusted Weight</div>
+  <div class="diagram-row">adjusted_weight(v, c) = weighted_vote(v, c) × (1 - bias_coefficient(v, c.domain_tags))</div>
+  <div class="diagram-row" style="margin-top: 10px;">bias_coefficient = 0.0 <span class="dim">→ full weight retained</span></div>
+  <div class="diagram-row">bias_coefficient = 1.0 <span class="dim">→ zero weight (excluded)</span></div>
+</div>
+
+### 4.4 Aggregation and Quorum
+
+| Rule | Condition |
+|------|-----------|
+| **Participation quorum** | At least 2/3 of selected validators must submit votes within the validation window. |
+| **Verdict majority** | Winning verdict must receive > 50% of total adjusted weighted vote mass. |
+| **Failure** | If either quorum fails: INDETERMINATE verdict. Claim may be requeued with a fresh validator set. |
+
+### 4.5 Claim Lifecycle
+
+<div class="diagram">
+  <div class="diagram-label">State Machine</div>
+  <div class="diagram-row"><strong>SUBMITTED</strong> <span class="dim">→ claim schema validated, submission stake locked</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><strong>QUEUED</strong> <span class="dim">→ awaiting validator selection</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><strong>ACTIVE</strong> <span class="dim">→ validator set locked, validation window open</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><strong>COMPUTING</strong> <span class="dim">→ votes collected, consensus running</span></div>
+  <div class="diagram-arrow">↓</div>
+  <div class="diagram-row"><strong>PROVISIONAL</strong> <span class="dim">→ preliminary verdict published, dispute window open (48h)</span></div>
+  <div class="diagram-branch" style="margin-top: 8px;">
+    <div class="branch-left">├── no dispute filed <span class="dim">→</span> <strong>FINALIZED</strong></div>
+    <div class="branch-right">└── dispute filed <span class="dim">→</span> <strong>DISPUTED</strong> <span class="dim">→ arbitration →</span> <strong>FINALIZED</strong></div>
+  </div>
+</div>
+
+### 4.6 Validation Windows
+
+| Parameter | Default Value |
+|-----------|--------------|
+| **Standard window** | 24 hours |
+| **Minimum window** | 4 hours |
+| **Maximum window** | 7 days |
+| **Validator confirmation window** | 2 hours |
+| **Dispute window** | 48 hours after provisional verdict |
+
+---
+
+## 5. Reputation System
+
+### 5.1 Reputation as Earned Expertise
+
+Reputation in PulseSyn is the computational expression of demonstrated expertise. It cannot be purchased, transferred, or inherited. It is earned through accurate validation and lost through inaccuracy. Domain reputation is the only currency that matters for claim eligibility and vote influence.
+
+### 5.2 Post-Finalization Updates
+
+| Validator Behavior | Effect |
+|-------------------|--------|
+| **Correct verdict, high confidence (> 0.7)** | Large positive increment `+Δr_high` |
+| **Correct verdict, low confidence (< 0.3)** | Small positive increment `+Δr_low` |
+| **Incorrect verdict, low confidence** | Small negative decrement `-Δr_low` |
+| **Incorrect verdict, high confidence** | Large negative decrement `-Δr_high` (overconfidence penalty) |
+| **No vote submitted (abstention)** | Participation penalty `-Δr_absent` |
+| **Late vote (after window)** | Vote discarded, late penalty `-Δr_late` |
+
+### 5.3 Retrospective Updates
+
+For PREDICTIVE claims and for any claim where verifiable ground truth emerges after finalization, the protocol applies retrospective reputation updates. Retrospective updates require a supermajority (5/7) of the arbitrator pool to ratify the ground truth evidence before any updates are applied.
+
+### 5.4 Reputation Decay
+
+<div class="diagram">
+  <div class="diagram-label">Decay Formula</div>
+  <div class="diagram-row">domain_rep(v, d, t+1) = domain_rep(v, d, t) × (1 - 0.001)^days_inactive</div>
+  <div class="diagram-row" style="margin-top: 10px; color: var(--text-2);">Activates after 30 consecutive days of inactivity in domain d.</div>
+  <div class="diagram-row" style="color: var(--text-2);">Floor: ELIGIBILITY_THRESHOLD. Reputation does not decay below eligibility.</div>
+</div>
+
+### 5.5 Expertise Emergence
+
+Expertise is an emergent property of the chain. No committee assigns it. In a mature network the starting advantage of genesis validators is statistically negligible. The transition from genesis authority to distributed reputation authority is automatic and requires no governance intervention.
+
+---
+
+## 6. Bias Detection
+
+### 6.1 Purpose
+
+Validators develop systematic biases over time — political, ideological, regional. These do not make validators dishonest but they create predictable non-epistemic voting patterns that corrupt consensus if unaddressed. Bias detection is a protocol-level concern, not an application concern.
+
+### 6.2 Bias Coefficient
+
+<div class="diagram">
+  <div class="diagram-label">Bias Coefficient Formula</div>
+  <div class="diagram-row">bias_coefficient(v, d) = |mean_vote_deviation(v, d)| / max_possible_deviation</div>
+  <div class="diagram-row" style="margin-top: 10px; color: var(--text-2);">mean_vote_deviation : how far validator v's average verdict on domain d deviates from the population average on the same claims.</div>
+  <div class="diagram-row" style="margin-top: 8px;">Range: [0.0, 1.0]</div>
+  <div class="diagram-row">0.0 <span class="dim">= no detectable systematic bias</span></div>
+  <div class="diagram-row">1.0 <span class="dim">= maximum systematic bias</span></div>
+</div>
+
+### 6.3 Response Tiers
+
+| Bias Level | Protocol Response |
+|------------|------------------|
+| **0.0 – 0.30 Negligible** | No action. Minor correction applied automatically in vote weighting. |
+| **0.30 – 0.50 Moderate** | Validator notified. Domain vote weight reduced proportionally. |
+| **0.50 – 0.70 High** | Validator excluded from validator pools for this domain only. |
+| **0.70 – 1.00 Severe** | Validator suspended from all validation. Reputation audit and collusion investigation initiated. |
+
+---
+
+## 7. Dispute Resolution
+
+### 7.1 Filing a Dispute
+
+1. Submit `dispute_claim` transaction within 48-hour dispute window.
+2. Provide at least one of: contradicting primary source evidence, procedural violation proof, or collusion evidence.
+
+### 7.2 Arbitration
+
+A panel of 7 arbitrators is selected from validators with `domain_reputation >= 0.75` in the claim's primary domain. Original validators cannot serve as arbitrators on the same claim. A supermajority of 5/7 is required to overturn.
+
+### 7.3 Outcomes
+
+| Outcome | Consequences |
+|---------|-------------|
+| **OVERTURN (5/7 or more)** | Verdict revised. Original validators who voted for the overturned verdict receive a domain reputation penalty. |
+| **UPHOLD (fewer than 5/7)** | Original verdict stands. Challenger's dispute stake is forfeited. |
+| **DEADLOCK (3/4 split)** | INDETERMINATE issued. Claim may be resubmitted. |
+
+---
+
+## 8. On-Chain Data Model
+
+### 8.1 What PulseSyn Stores On-Chain
+
+| On-Chain (PulseSyn's Responsibility) | Off-Chain (App's Responsibility) |
+|---------------------------------------|----------------------------------|
+| Claim schema fields (hash, URL, text, type, tags) | Raw content (video, audio, text, image, document) |
+| Validator records and reputation scores | Content previews and renderings |
+| Vote records (anonymised, merkle-proofed) | User profiles and social features |
+| Validation records and final verdicts | Discovery, ranking, recommendation |
+| Dispute records and arbitration outcomes | Moderation queues and takedowns |
+| Reputation update history | Analytics and reporting |
+| Governance votes and parameter changes | Monetisation and subscriptions |
+
+### 8.2 Content Integrity Without Content Storage
+
+The `content_hash` field allows the protocol to verify that the content a validator reviewed is identical to what was submitted. If a submitter alters the content at the URL after submission, the hash mismatch is immediately detectable. The protocol does not need to store content to maintain integrity — it only needs the hash.
+
+---
+
+## 9. Technology Stack
+
+| Layer | Technology and Rationale |
+|-------|--------------------------|
+| **Protocol core** | Go — readable, excellent networking primitives, fast iteration. |
+| **Smart contracts** | Solidity — deployed on Base or Polygon L2. |
+| **Peer networking** | libp2p (Go implementation) — peer discovery, connection multiplexing, message routing. |
+| **Content addressing** | IPFS CID standard for content hashing. Applications choose their own storage. |
+| **Cryptography** | Ed25519 signatures, SHA3-256 content and claim hashing, BLS vote aggregation proofs. |
+| **Application API** | JSON-RPC 2.0 over HTTP/2 or WebSocket. |
+
+---
+
+## 10. Governance
+
+### 10.1 Phases
+
+| Phase | Description |
+|-------|-------------|
+| **Phase 0 — Genesis** | Core team holds upgrade authority. All decisions publicly documented. Ends at 500 finalized validations across 5+ domains. |
+| **Phase 1 — Validator Governance** | Validators with `global_reputation >= 0.60` vote on parameter changes. Core team retains authority over protocol primitives. Ends at 10,000 active validators across 10+ domains. |
+| **Phase 2 — DAO** | Full decentralized governance. All changes require supermajority validator vote. Core team holds no special authority. |
+
+### 10.2 Governable Parameters
+
+- `ELIGIBILITY_THRESHOLD` — minimum domain reputation for validator eligibility.
+- `BIAS_EXCLUSION_THRESHOLD` — bias coefficient above which validators are excluded from a domain.
+- `QUORUM_THRESHOLD` — minimum fraction of validators required to submit votes.
+- `DISPUTE_WINDOW` — duration of dispute period after provisional verdict.
+- `DECAY_RATE` — daily reputation decay rate for inactive validators.
+- `VALIDATOR_SET_SIZES` — minimum set sizes per claim type.
+- `GENESIS_THRESHOLD` — finalized validation count that triggers open registration.
+
+### 10.3 Protocol Primitives — Immutable Without Upgrade
+
+- The four verdict states and their definitions.
+- The claim schema structure and required fields.
+- The consensus algorithm — vote weighting, bias correction, aggregation.
+- The reputation update rules and their asymmetric structure.
+- The dispute resolution process and arbitration supermajority requirement.
+
+---
+
+## 11. Security
+
+| Attack | Mitigation |
+|--------|-----------|
+| **Sybil attack** | Reputation starts at zero and cannot be purchased. New identities have no influence until earned. |
+| **Validator collusion** | Commit-reveal prevents strategic herding. Bias detection identifies coordination. Retrospective updates penalise validators whose coordination is later revealed as wrong. |
+| **Targeted bribery** | Selection seed committed before validators are notified. Bribers cannot know who to target. |
+| **Claim framing manipulation** | Structured claim schema with falsifiability requirement. MISLEADING verdict addresses deceptive framing. |
+| **Content tampering** | `content_hash` detects post-submission content changes at the URL. |
+| **Protocol capture** | Reputation cannot be purchased. Wealthy actors cannot buy more influence than accuracy supports. |
+| **Bias monoculture** | Stratified selection by bias profile ensures no single perspective dominates a validator set. |
+
+### Known Limitations
+
+- **Network bootstrap fragility** — most vulnerable when validator pool is small. Minimum viable network estimated at 5,000 active validators across 10+ domains.
+- **Slow-resolving ground truth** — predictive claims may take months or years for retrospective updates.
+- **Subjective claims** — purely opinion-based assertions produce low-confidence INDETERMINATE verdicts.
+- **Legal jurisdiction** — the protocol produces epistemic verdicts, not legal judgments.
+
+---
+
+## Appendix A: Protocol Constants
+
+| Constant | Default Value |
+|----------|--------------|
+| `ELIGIBILITY_THRESHOLD` | 0.15 |
+| `SUBMISSION_MIN_REPUTATION` | 0.10 |
+| `BIAS_EXCLUSION_THRESHOLD` | 0.70 |
+| `QUORUM_THRESHOLD` | 0.667 (2/3) |
+| `VERDICT_MAJORITY` | 0.50 |
+| `DISPUTE_WINDOW_HOURS` | 48 |
+| `VALIDATION_WINDOW_DEFAULT_HOURS` | 24 |
+| `VALIDATION_WINDOW_MIN_HOURS` | 4 |
+| `VALIDATION_WINDOW_MAX_DAYS` | 7 |
+| `VALIDATOR_CONFIRMATION_HOURS` | 2 |
+| `DECAY_RATE_DAILY` | 0.001 |
+| `DECAY_INACTIVITY_DAYS` | 30 |
+| `ARBITRATOR_MIN_REPUTATION` | 0.75 |
+| `ARBITRATOR_SET_SIZE` | 7 |
+| `ARBITRATION_SUPERMAJORITY` | 5/7 |
+| `GROUND_TRUTH_RATIFICATION` | 0.75 |
+| `GENESIS_VALIDATOR_STARTING_REP` | 0.75 in registered domains |
+| `GENESIS_OPEN_REGISTRATION_THRESHOLD` | 500 validations across 5+ domains |
+| `PHASE1_GOVERNANCE_THRESHOLD` | 10,000 active validators across 10+ domains |
+
+---
+
+## Appendix B: Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Bias coefficient** | Score [0.0, 1.0] measuring a validator's systematic deviation from population-average verdicts in a domain. |
+| **Claim** | A structured, falsifiable assertion submitted with a pointer to supporting evidence. The protocol's central primitive. |
+| **Commit-reveal** | Two-phase voting scheme. Validators commit a vote hash, then reveal plaintext after all commits collected. |
+| **Content hash** | SHA3-256 of the evidence content. Stored on-chain for integrity. Actual content never stored on-chain. |
+| **Domain reputation** | Validator reputation in a specific domain. The only score that matters for eligibility and vote weighting. |
+| **Genesis validator** | One of up to 50 initial validators. Start with `domain_reputation` 0.75 in registered domains. |
+| **Global reputation** | Weighted average of domain reputation scores. Used for general eligibility only. |
+| **Ground truth** | Verifiable post-finalization evidence that confirms or contradicts a verdict. Triggers retrospective updates. |
+| **INDETERMINATE** | Verdict when quorum or majority thresholds not met, or evidence genuinely insufficient. |
+| **Retrospective update** | Reputation adjustment applied after finalization when ground truth resolves claim accuracy. |
+| **Validator set** | The specific group of validators selected to evaluate a given claim. |
+| **Verdict** | Output of PoV consensus: SUPPORTED, UNSUPPORTED, MISLEADING, or INDETERMINATE. |
+
+---
+
+*This specification is a living document. Version 0.1 is a draft open for public comment.*
