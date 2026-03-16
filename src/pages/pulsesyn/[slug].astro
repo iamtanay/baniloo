@@ -16,7 +16,10 @@ const { entry } = Astro.props;
 const { Content } = await entry.render();
 ---
 
-<Layout title={`${entry.data.title} — PulseSyn — Baniloo`} currentPath="/pulsesyn">
+<Layout
+  title={`${entry.data.title} — PulseSyn`}
+  description={entry.data.description ?? `A thinking note on PulseSyn — the open protocol for validating claims.`}
+  currentPath="/pulsesyn">
   <article class="thinking-entry">
     <div class="entry-header">
       <a href="/pulsesyn" class="back-link">← PulseSyn</a>

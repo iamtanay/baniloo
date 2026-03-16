@@ -8,7 +8,10 @@ if (!entry) throw new Error('Spec not found');
 const { Content } = await entry.render();
 ---
 
-<Layout title="LooMed Specification — Baniloo" currentPath="/loomed">
+<Layout
+  title="LooMed Specification"
+  description="Protocol specification v0.2 for LooMed — the open protocol for patient-controlled medical records using cryptographic ownership and offline-first sync."
+  currentPath="/loomed">
   <article class="spec-page">
     <nav class="breadcrumb">
       <a href="/loomed">← Back to LooMed</a>

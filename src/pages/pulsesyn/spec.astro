@@ -8,7 +8,10 @@ if (!entry) throw new Error('PulseSyn spec not found');
 const { Content } = await entry.render();
 ---
 
-<Layout title="PulseSyn Specification — Baniloo" currentPath="/pulsesyn">
+<Layout
+  title="PulseSyn Specification"
+  description="Protocol specification v0.1 for PulseSyn — a decentralized, content-agnostic protocol for validating claims using reputation-weighted consensus."
+  currentPath="/pulsesyn">
   <article class="spec-page">
     <nav class="breadcrumb">
       <a href="/pulsesyn">← Back to PulseSyn</a>

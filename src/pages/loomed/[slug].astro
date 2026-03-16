@@ -22,7 +22,10 @@ const formattedDate = entry.data.date.toLocaleDateString('en-US', {
 });
 ---
 
-<Layout title={`${entry.data.title} — LooMed — Baniloo`} currentPath="/loomed">
+<Layout
+  title={`${entry.data.title} — LooMed`}
+  description={entry.data.description ?? `A thinking note on LooMed — the open protocol for patient-controlled medical records.`}
+  currentPath="/loomed">
   <article class="thinking-page">
     <nav class="breadcrumb">
       <a href="/loomed">← Back to LooMed</a>
