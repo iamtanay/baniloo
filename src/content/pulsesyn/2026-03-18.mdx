@@ -1,0 +1,92 @@
+---
+title: "The first session"
+date: 2026-03-18
+description: "Four documents, no code — and the protocol core takes shape"
+---
+
+We started with four documents and no code. By the end, there were 41
+passing tests and the entire protocol core committed.
+
+The interesting part wasn’t the code. It was the pushback.
+
+## Where the protocol gets tested
+
+Twice during this session, something forced a pause.
+
+The first was a bug in domain tag validation. Whitespace-only tags were
+passing as valid when they should have been rejected. The tests caught
+it. That’s exactly what they’re supposed to do.
+
+The second was more important. After the reputation floor issue surfaced,
+the question came back: was the fix actually a protocol decision, or just
+a patch to make tests pass?
+
+That distinction matters.
+
+## Reputation is not a shortcut
+
+The `ReputationFloor` exists to protect established validators from
+decay pushing them below eligibility. It is not a starting baseline.
+
+Clamping a new validator’s score to 0.15 would make them appear eligible
+before earning anything. That directly contradicts the spec.
+
+The fix was not a convenience. It was alignment with the protocol.
+
+## The spec is the source of truth
+
+Early sessions are where mistakes get baked in if they’re not caught.
+
+The temptation is always to move fast and smooth over edge cases. But
+the spec is the standard. If code and spec disagree, the spec wins.
+
+If there is a valid reason to deviate, it gets written down and tracked.
+Otherwise, the system drifts without anyone noticing.
+
+## Consensus without unnecessary complexity
+
+One open question was normalization in the consensus weight formula.
+
+We kept it as late normalization.
+
+Aggregate in raw weight space, and normalize only at the decision
+boundary. The majority check is relative, not absolute.
+
+`winnerMass / totalMass` already gives the correct comparison.
+
+No pre-normalization. No extra passes. Same result, cleaner system.
+
+## What exists now
+
+The core pieces are in place:
+
+The claim schema and lifecycle state machine.
+
+The PoV vote weighting engine with bias correction.
+
+The reputation engine with all six post-finalization update cases,
+including decay.
+
+Everything inside `core/` is isolated. No external imports. No
+networking. No chain awareness.
+
+Pure protocol logic — inputs in, outputs out.
+
+## What comes next
+
+The next session moves into two areas:
+
+`core/bias`, where bias detection feeds into the consensus engine.
+
+The simulation harness, where the system is tested under collusion
+pressure at scale.
+
+That’s where the math either holds or breaks.
+
+---
+
+The protocol is small right now. It should be.
+
+---
+
+PulseSyn is built in public at https://github.com/iamtanay/pulsesyn
