@@ -1,0 +1,85 @@
+---
+title: "The test suite that almost wasn't"
+date: 2026-03-25
+description: "34 integration tests, a Windows TTY problem, and what a protocol owes its future contributors"
+---
+
+This was supposed to be straightforward. Write integration tests for
+every CLI command. Prove the full lifecycle works end to end. Ship it.
+
+It was not straightforward.
+
+## The problem with rpassword on Windows
+
+The test suite was written using `assert_cmd` — the standard Rust crate
+for black-box CLI testing. You spawn the binary, feed it stdin, assert
+on stdout and stderr. Clean, simple, well-understood.
+
+Except `rpassword` on Windows does not read from stdin. It reads from
+`CONIN$` — the raw console input device. Every test that called `loomed commit`,
+`loomed log`, or `loomed verify` hung indefinitely, waiting for a human
+to type a passphrase into a terminal that did not exist.
+
+The first instinct was to run the suite in WSL. Linux rpassword falls
+back to stdin when there is no TTY — this seemed like it would work.
+It did not. WSL attaches a pseudo-terminal. rpassword finds `/dev/tty`
+and blocks exactly the same way.
+
+## The fix
+
+OpenSSL has `OPENSSL_PASS`. GPG has `--passphrase-fd`. SSH has `SSH_ASKPASS`.
+Every serious cryptographic tool solves this problem the same way: in
+non-interactive mode, credentials come from the environment.
+
+One function in `commands/mod.rs`:
+
+```rust
+pub fn read_passphrase(prompt: &str) -> Result<String, Box<dyn std::error::Error>> {
+    if let Ok(p) = std::env::var("LOOMED_PASSPHRASE") {
+        return Ok(p);
+    }
+    Ok(rpassword::prompt_password(prompt)?)
+}
+```
+
+Five call sites across the command files — one line each. The production
+binary is unchanged when `LOOMED_PASSPHRASE` is not set.
+
+## One interesting failure
+
+The first complete run: 31 passing, 1 failing, 3 hanging.
+
+The hangers were obvious — `log.rs` had been missed, still calling
+`rpassword` directly. One-line fix.
+
+The failure was more interesting. The test expected `loomed commit` to
+fail when given the wrong passphrase. It does not. It encrypts the commit
+with whatever AES key it derives, writes the file, and exits cleanly.
+There is no validation at write time. There cannot be, by design.
+
+The protocol detects the wrong passphrase at read time. `loomed verify --chain`
+with the correct passphrase cannot decrypt a commit written with the wrong one.
+The test was fixed to reflect actual protocol behaviour — commit with
+wrong passphrase, then verify with correct passphrase, verify fails.
+
+## What a protocol owes its future contributors
+
+34 tests across every command — `init`, `status`, `add`, `commit`, `log`,
+`show`, `verify` — including error paths, fail-fast precondition checks,
+tamper-detection, and a full end-to-end lifecycle test.
+
+A protocol is not just a specification. It is everything a future
+implementer has to understand before they can trust what they are building
+on. A test suite that only runs if you have a specific terminal
+configuration is not a test suite — it is a trap for the next person.
+
+The tamper-detection tests write garbage bytes into a committed `.lmc`
+file and assert that `loomed verify` exits with code 1. Every time the
+suite runs, it proves the fundamental security property of the protocol
+still holds. That is what a test suite is for.
+
+110 tests total. 0 failures. The chain holds.
+
+---
+
+Next is typed payload display in `loomed show` and cloud sync design.

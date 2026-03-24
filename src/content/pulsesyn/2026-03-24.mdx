@@ -1,0 +1,64 @@
+---
+title: "The math holds"
+date: 2026-03-24
+description: "Bias detection, a simulation, and two bugs that were worth finding"
+---
+
+We started Session 2 with the protocol core already in place. The task was to finish Phase 1 — build the bias detection module and prove the whole thing works under pressure.
+
+Both are done. 100 tests pass. Phase 1 is closed.
+
+## Two bugs that were worth finding
+
+The simulation surfaced two failures immediately.
+
+The first was an accuracy calculation that could exceed 100%. The protocol can produce an INDETERMINATE verdict — meaning it couldn't reach a decision. Those rounds were being counted as correct when they shouldn't have been counted at all. INDETERMINATE is not a right answer. It's a non-answer.
+
+The second was subtler. Biased validators in the simulation weren't producing any detectable bias signal. The original design had them vote correctly but with lower confidence. The bias module doesn't track confidence — it tracks how your verdict compares to everyone else's. Same verdict, no signal.
+
+The fix was to have biased validators actually vote differently, not just quieter. That's what systematic bias looks like in practice.
+
+Both were protocol decisions, not patches.
+
+## What bias detection actually does
+
+A validator with high bias isn't necessarily wrong. They're just consistently different from the group on the same claims, in the same direction, over time.
+
+The protocol measures that deviation and corrects for it automatically in vote weighting. At higher levels it reduces their influence in that domain, then excludes them, then suspends them entirely.
+
+The gradient is the point. No single hard line.
+
+## The simulation is a proof, not a demo
+
+Before building networking, storage, or chain integration, the question had to be answered: does the math actually work?
+
+Four scenarios ran — an honest network, 15% colluding validators, 30% colluding, and a pool with concentrated bias. The honest network held above 70% accuracy. Collusion degraded things but didn't collapse them. Biased validators surfaced through the tracker.
+
+The math holds. Now we can build on top of it.
+
+## What exists now
+
+Phase 1 is complete. Five packages, all isolated, all tested:
+
+- The claim schema and lifecycle state machine
+- The PoV vote weighting engine with bias correction
+- The reputation engine with update rules and decay
+- The bias detection module with sliding window tracking
+- The simulation harness across four adversarial scenarios
+
+Everything inside `core/` remains isolated — no networking, no storage, no chain awareness. Inputs in, outputs out.
+
+## What comes next
+
+Phase 2 is persistence. Three things get built:
+
+- A local state store so the node survives restarts
+- Three smart contracts for permanent on-chain records
+- A Merkle proof generator for vote sets
+
+This is where the protocol stops being in-memory and starts being real.
+
+---
+
+
+PulseSyn is built in public at https://github.com/iamtanay/pulsesyn
