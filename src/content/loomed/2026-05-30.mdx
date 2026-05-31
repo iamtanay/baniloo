@@ -1,0 +1,92 @@
+---
+title: "The chain survives the fork"
+date: 2026-05-30
+description: "Sync Rebase lands in Rust — deterministic fork resolution, signature preservation, and what pull and resolve mean as separate operations"
+---
+
+Phase 2 Session 2 is done. The protocol can now detect a fork in the
+commit chain and resolve it — deterministically, every time, without
+losing a single signature.
+
+154 tests pass. The chain survives.
+
+## What the spec says, and what that means in Rust
+
+The Sync Rebase algorithm is specified in §8.3. On paper it reads simply:
+sort conflicting commits by timestamp, tiebreak by `commit_id`
+lexicographically, re-link the chain. The complexity is in what you
+cannot touch while doing this.
+
+Every commit in LooMed is signed before it leaves the device. The patient
+signed it. The clinician signed it. The signature is a cryptographic
+promise over specific bytes — including the `previous_hash` field that
+a rebase must change. You cannot re-sign a rebased commit. Only the
+original author can do that.
+
+The solution is in `sync_metadata`. Before any field is changed, the
+original `previous_hash` and `commit_id` are saved into
+`pre_sync_previous_hash` and `pre_sync_commit_id`. The signature stays
+untouched. Any verifier who wants to check the original signature
+reconstructs the original canonical bytes from those fields — the
+verification path in `loomed-core::verify` already handles this.
+
+Rebase is a transparent, auditable protocol operation. It is not a
+content modification. The spec is explicit about this, and the
+implementation holds it as an invariant.
+
+## Clock skew and the tiebreaker
+
+Two institutions commit offline. The timestamps are 10:31:00 and 10:32:00.
+The sort is clear. But what if they both committed at 10:31:45 — within
+the ±60 second clock skew tolerance the spec defines?
+
+Timestamps cannot be the tiebreaker when they cannot be trusted to that
+precision. The secondary sort key is `commit_id` lexicographically
+ascending. `commit_id` is a SHA-256 hash — the lexicographic ordering
+is arbitrary but it is deterministic. Two different machines running
+Sync Rebase on the same fork will always produce the same linear chain.
+That is the invariant the test suite proves directly: same input,
+shuffled order, identical output.
+
+## Pull and resolve are separate operations
+
+This was an intentional split.
+
+`loomed sync --pull` fetches commits from a remote backend and updates
+the local HEAD. It transfers raw AES-256-GCM ciphertext — the encrypted
+bytes the author wrote, unchanged. No passphrase required. A device
+can pull another institution's commits without ever having decryption
+access to them. Encrypted blobs move; nothing is readable.
+
+`loomed sync --resolve` is different. It loads all commits, decrypts
+them, applies Sync Rebase, re-encrypts the rebased chain under the vault
+key, and writes it back. Passphrase required. Resolve is a vault-local
+operation — it does not touch a remote at all.
+
+The separation reflects the protocol's offline-first design. A device
+with no decryption key can still act as a sync relay for a patient's
+vault. Pull is storage. Resolve is protocol.
+
+## 154 tests
+
+The sync crate now has 15 tests of its own: pull fetch, pull idempotency,
+pull HEAD update, and resolve fork linearisation. Combined with the 12
+Sync Rebase unit tests in `loomed-core`, every path through the algorithm
+has a test — linear chains are returned unchanged, forks are linearised,
+genesis commits are never modified, `sync_metadata` fields are preserved,
+signatures are not touched.
+
+| Crate | Tests |
+|---|---|
+| `loomed-core` | 53 |
+| `loomed-crypto` | 17 |
+| `loomed-store` | 18 |
+| `loomed-sync` | 15 |
+| `loomed-cli` | 51 |
+| **Total** | **154, 0 failures** |
+
+---
+
+Next is Phase 2 Session 3: `loomed log` payload summaries,
+`sync_metadata` display in `loomed show`, and `ParticipantId` validation
+across commit fields.

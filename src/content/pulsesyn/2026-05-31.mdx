@@ -1,0 +1,108 @@
+---
+title: "Phase 2 is real now"
+date: 2026-05-31
+description: "A local state store, a Merkle tree, three smart contracts, and the design decision that kept all of it clean"
+---
+
+Phase 2 is the point where a protocol stops being in-memory and starts
+being real. The work is done. The node survives restarts. Votes are
+provable on-chain. Verdicts are permanent.
+
+Three packages built today. 63 new tests. 0 failures.
+
+## The store design question
+
+The first decision was what kind of storage to use. A relational database
+would give query flexibility but at the cost of a schema migration story,
+SQL dependency, and significantly more operational complexity for what is
+ultimately a local node store. A simple key-value store is enough —
+four record types (claims, validators, validations, votes) with a small
+number of access patterns.
+
+BadgerDB v4 is the choice. Embedded, no separate process, LSM-backed,
+write transactions serialized internally, concurrent reads. The node
+opens one store directory on startup and closes it on shutdown. Nothing
+more.
+
+The interesting part was write semantics per record type. Claims and
+validations are **write-once** — once a claim is registered or a verdict
+finalized, neither should ever be overwritten. The store returns
+`ErrAlreadyExists` if you try. Validator records are **upsert** — because
+reputation evolves after every validation session and the record must
+accept updates. Votes are write-once per `(claim_id, validator_id)` pair —
+a validator casts one vote per claim, full stop.
+
+These are protocol decisions, not store implementation choices. The store
+enforces what the protocol requires.
+
+Secondary indexes handle the two query patterns that matter: validations
+by domain and validations by epoch. Zero-padded hex epoch keys keep
+lexicographic order aligned with epoch order — a small detail that makes
+range scans work correctly without any extra logic.
+
+26 tests cover the full state recovery cycle: open, write, close, reopen,
+read back. The node does not lose state.
+
+## A Merkle tree that proves votes happened
+
+Every finalized `ValidationRecord` carries a `merkle_root` — the root
+of a Merkle tree built from the validator vote set. Any external party
+can request a Merkle proof for a specific validator's vote and verify it
+against the root stored on-chain without trusting the node.
+
+The implementation detail that matters: leaf hashing and internal node
+hashing use different domain separators — a `0x00` prefix byte for leaves
+and `0x01` for internal nodes. Without this, a valid internal node hash
+could be submitted as a proof for a leaf that was never in the original
+tree. It is a known second-preimage attack against naive Merkle trees.
+The separation makes leaf and internal hashes structurally incompatible.
+
+Vote serialization for leaf hashing is deterministic: `validator_id`,
+`claim_id`, and `verdict` encoded in a fixed binary format with
+big-endian field lengths. The same vote always produces the same leaf
+hash, regardless of what language or platform is doing the hashing.
+
+18 tests cover the tree directly — edge cases at 1 and 2 leaves, tampered
+leaf rejection, tampered node rejection, wrong root rejection, and a
+full round-trip across 8 tree sizes from 1 to 13 leaves.
+
+## The NullAdapter pattern
+
+The chain adapter defines the interface that all on-chain reads and writes
+go through: five methods, three record types. Protocol code never
+interacts with the chain directly.
+
+The concrete `EthereumAdapter` — the one that actually talks to Base or
+Polygon — is deferred to Phase 2.5. For now, the `NullAdapter` stands
+in: writes return a zero transaction hash, reads return typed not-found
+errors. The compile-time assertion (`var _ Adapter = (*NullAdapter)(nil)`)
+ensures every method in the interface is implemented before the code
+compiles.
+
+The three Solidity contracts follow the same mutation logic as the Go
+store. `ClaimRegistry` and `ValidationRegistry` are write-once — a second
+write for the same ID reverts with a custom error. `ReputationStore` is
+mutable, emitting the old and new score on every update so the full
+history is readable from chain events even if the current state is
+overwritten.
+
+19 adapter tests cover all three record type validators and every
+NullAdapter method path.
+
+## What Phase 2 now looks like
+
+| Package | Tests |
+|---|---|
+| `core/` (Phase 1) | 100 |
+| `store/` | 26 |
+| `merkle/` | 18 |
+| `chain/` | 19 |
+| **Total** | **163, 0 failures** |
+
+The persistence layer is complete. Phase 2.5 is the real chain connection:
+deploying the contracts to a testnet, wiring in the EthereumAdapter,
+and connecting store writes to on-chain writes after finalization.
+
+---
+
+PulseSyn is built in public at https://github.com/iamtanay/pulsesyn
