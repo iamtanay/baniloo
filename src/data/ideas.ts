@@ -26,6 +26,38 @@ const ideasData: Idea[] = [
     date: '2026-03-16',
   },
   {
+    title: 'FedAcuity',
+    description:
+      'M.TECH dissertation. Federated learning for Long-Term Care facilities — predicting skilled nursing needs without ever moving patient data off-premises.',
+    href: '/fedacuity',
+    status: 'active',
+    date: '2026-04-18',
+  },
+  {
+    title: 'Chakra',
+    description:
+      'A personal life management and task tracker. Kanban, calendar, a Today view that tracks momentum and drift, recurring tasks, multiuser Spaces, and Streams.',
+    href: '/chakra',
+    status: 'active',
+    date: '2026-03-26',
+  },
+  {
+    title: 'Vigor',
+    description:
+      'A pay-per-use gym and fitness venue app. Walk in, scan a QR, train, scan out. No memberships. A full session lifecycle with wallet tokens, venue discovery, and a gym owner portal.',
+    href: '/vigor',
+    status: 'active',
+    date: '2026-04-17',
+  },
+  {
+    title: 'theChant',
+    description:
+      'A real-time fan reaction app for FIFA World Cup 2026. Pick your team, react as the match unfolds, watch a live world map show where everyone is feeling it.',
+    href: '/thechant',
+    status: 'active',
+    date: '2026-05-21',
+  },
+  {
     title: 'Untitled Protocol',
     description:
       'Exploring how the world will move from video-based learning to AI-influenced learning maps.',

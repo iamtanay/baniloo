@@ -1,0 +1,78 @@
+---
+title: "Three bugs and a framework swap later"
+date: 2026-05-30
+description: "Debugging Flower, replacing Ray, and what the numbers finally said when five FL strategies ran end-to-end"
+---
+
+Six weeks between the scaffold and a working pipeline. The architecture
+was right. The code had three bugs and a dependency that turned out to be
+wrong for this environment.
+
+All five strategies now run. The numbers are in.
+
+## Bug one: the data schema
+
+The NON_IID_SPEC in `schema.py` was missing ADL entries for two activity
+types (`adl_eating` and `adl_toileting`) for IL and SNF care types.
+CTGAN filled in the gaps by learning mid-range values — approximately 3.7
+on a scale of 1–5 — which are clinically wrong for Independent Living
+facilities. IL patients are largely self-sufficient. A value of 3.7
+implies significant dependency.
+
+The downstream effect: the calibration threshold function was producing
+demand/supply ratios well above the expected 12% ceiling. The actual
+mismatch rate was 41.7%. That kind of skew in synthetic data would
+corrupt any result it touched.
+
+The fix was adding clinically appropriate values — mean ≈ 1.0 for IL
+(low-acuity), mean ≈ 2.5 for SNF (moderate). The calibration function
+also had a hard upper bound of 5.0 on the binary search; facilities with
+high demand ratios hit the ceiling. Raised to 50.0.
+
+## Bug two: XGBoost 3.x
+
+XGBoost 3.x removed `BytesIO` support from `Booster.save_model()` and
+`Booster.load_model()`. The Flower client was using that path for model
+serialisation. Replaced with `save_raw("ubj")` for serialisation and a
+`NamedTemporaryFile` + `XGBClassifier.load_model()` round-trip for
+deserialisation — which also correctly sets `n_classes_` and other sklearn
+wrapper attributes that `predict_proba` needs.
+
+## The bigger problem: Flower needs Ray
+
+Flower 1.29.0 requires Ray to run `fl.simulation.start_simulation()`.
+Ray installs at approximately 2 GB. For a single-machine research
+environment running 10 simulated clients on local data, that is roughly
+1.98 GB more than the problem warrants.
+
+The replacement is a manual FL round loop — `_run_manual_simulation` —
+that directly instantiates `FedAcuityClient` objects and steps through
+`fit → aggregate → evaluate` without any Ray or Flower server machinery.
+The public CLI interface is unchanged. The `ResultsLogger` output is
+unchanged. The tests that validate the client interface still pass.
+
+The Flower dependency stays in the codebase for its client base class
+and protocol types. But the simulation runner is now self-contained.
+
+## The numbers
+
+10 rounds, held-out evaluation:
+
+| Strategy | AUC-ROC |
+|---|---|
+| Local (no federation) | 0.9749 |
+| Centralised oracle | 0.9777 |
+| FedAvg | 0.9643 |
+| FedProx (μ=0.1) | 0.9643 |
+| Clustered FL (C1) | 0.9828 |
+
+CFL outperforms FedAvg by +1.85 percentage points overall. The IL cluster
+specifically improves from 0.912 under FedAvg to 0.983 under CFL — a
+7.1pp improvement on the cluster that had the most clinically distinct
+patient profile. That is the dissertation's core claim, demonstrated.
+
+72/72 unit tests pass. The midsem evaluation is June 13.
+
+---
+
+Next: full 50-round simulation, data fidelity evaluation, DP epsilon sweep.

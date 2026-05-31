@@ -1,0 +1,57 @@
+---
+title: "Sharing a workspace"
+date: 2026-04-01
+description: "Adding multiuser support meant solving identity, permissions, real-time state, and what it means when two people own the same task"
+---
+
+Up to this point, Chakra is a personal tool. You have Spaces, you have
+tasks, everything belongs to you. Multiuser support changes the model
+fundamentally. A Space can now be owned by a group, and the permissions
+that flow from that affect every layer of the stack.
+
+## The invite problem
+
+The simplest version of "invite someone" is: you type an email, they get
+access. The complexity is in the lookup. Supabase auth doesn't expose
+a public endpoint to find a user by email — that would be a privacy
+violation. The solution is a Supabase Edge Function: `lookup-user` (111
+lines) runs server-side with service-role access, takes an email, and
+returns the minimal user record needed to wire up the share. The Edge
+Function is the only component that has the permissions to do this lookup.
+
+`ShareModal` — 495 lines — is the UI that sits in front of this. You type
+an email, it calls the lookup function, shows you the resolved user, and
+lets you confirm the share. Existing shared members are listed below
+with the option to remove them. The whole interaction happens in the
+modal without a page reload.
+
+## RLS and the shared data problem
+
+Row-Level Security in Supabase is set per-table. A task in a private Space
+has a simple policy: the owner can see it. A task in a shared Space needs
+a policy that extends to all members of that Space. The migration for
+multiuser support added a `space_members` join table and rewrote the RLS
+policies for tasks, projects, and reports to join through it.
+
+Getting RLS right with shared resources requires thinking about every
+access pattern — not just "can this user see this task" but "can they
+see this task in this list view?", "can they edit it?", "what happens
+when the owner is removed from the space?". Each of these is a separate
+policy clause.
+
+## What collaboration means in a task manager
+
+The feature also raised a design question that doesn't have a clean answer:
+whose task is it?
+
+When a Space is shared, tasks in it are visible to all members. But the
+concept of ownership still exists. You can assign a task to yourself or to
+a collaborator. The completion record, the traces, the momentum calculation
+— these are all tied to whoever completes the task, not whoever created it.
+
+That's the right choice, but it required updating every piece of code that
+assumed the creator and the completer were the same person.
+
+---
+
+Next: Streams, Karma, and closing Version 1.

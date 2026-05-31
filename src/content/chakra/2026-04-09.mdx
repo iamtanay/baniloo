@@ -1,0 +1,69 @@
+---
+title: "Streams, Karma, and what didn't make Version 1"
+date: 2026-04-09
+description: "A new concept above Spaces, a feature cutoff, and the onboarding tour that shipped the day after"
+---
+
+Version 1 of Chakra closes with two things that weren't in the original
+scope: Streams, which turned out to be necessary, and Karma, which turned
+out to be worth adding.
+
+## Streams
+
+A Space is for one project or area of work. But over time, you accumulate
+Spaces. Some of them belong together — all your coursework Spaces, all your
+side project Spaces, all your health-related Spaces. There was no concept
+in the app for this grouping.
+
+Streams is that concept. A Stream sits above Spaces. It's a named container
+that Spaces can belong to, with its own view, its own share model, and its
+own activity summary.
+
+The implementation was substantial: `StreamCard`, `StreamCreateModal`,
+`StreamDetail`, and `StreamShareModal` — 2399 lines added in one commit.
+`StreamDetail` is the most complex at 779 lines. It renders all the Spaces
+inside the Stream, their combined task counts, shared member lists, and
+a summary of recent activity across all of them.
+
+The share model for Streams mirrors the Space share model — the same
+Edge Function, the same RLS patterns. A person added to a Stream gets
+read access to all the Spaces inside it, but edit access on individual
+Spaces still requires a separate share on that Space. The Stream is a
+view, not a permission boundary.
+
+## Karma
+
+Karma is the gamification layer. Every task you complete earns points —
+more for high-priority tasks, more for completing ahead of a deadline,
+less for completing something overdue. Your Karma score is visible on your
+profile and on the home screen.
+
+It's not a serious productivity metric. It's just satisfying. There is
+real behavioural psychology behind reward loops in task management, and
+Karma is the acknowledgment of that. The score is meaningless in an
+objective sense and meaningfully motivating in practice.
+
+## The feature cutoff
+
+Not everything that was started made it into Version 1. The cutoff
+decision on April 9 was deliberate — there's a list of things that are
+in and a list of things that aren't yet.
+
+What made it: Kanban, calendar view, list view, Today view with Drift and
+Momentum, recurring tasks, multiuser Spaces, Streams, Karma, notifications,
+reports, mobile layout.
+
+What didn't make it: real-time cursor presence in shared Spaces, a full
+activity feed, custom task templates, mobile push notifications.
+
+The right version of Version 1 is not the one with the most features. It's
+the one where every included feature works well enough that you'd use it
+as your actual task manager. That bar is harder to clear than it sounds.
+
+The onboarding tour shipped April 10 — the day after the cutoff — as a
+final pre-Version-1 step. New users get a guided walkthrough of the key
+concepts. The tour took less time to build than deciding what was in it.
+
+---
+
+Version 1 is done. Using it now.

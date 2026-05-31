@@ -1,0 +1,60 @@
+---
+title: "The schema before the app"
+date: 2026-04-17
+description: "Phase 1 was just the foundation — Supabase schema, RLS policies, seed data, and auth flows before a single user screen existed"
+---
+
+The idea for Vigor is simple: pay-per-use gym access. No memberships.
+Walk into a partner venue, pay for the time you actually use, walk out.
+Simple for the user. Complex underneath.
+
+The first thing built was not the UI. It was the database.
+
+## Why schema first
+
+The whole product is a transaction and permission system. A user has a
+wallet. The wallet has tokens. A booking consumes tokens. A session is
+opened by a booking. A session is closed when the user leaves. The gym
+gets paid based on sessions closed. Each of those is a row in a table,
+and the relationships between them determine what's possible and what
+isn't.
+
+Getting the schema wrong means rebuilding it mid-product. Getting it
+right means every subsequent feature is just a query.
+
+The Supabase schema for Phase 1 covers: venues (with pricing tiers, amenities,
+location), users (with wallet balance, activity history), bookings (linking
+user to venue with token cost and timing), sessions (the live state of
+a user inside a venue), and the wallet transaction log. Row-Level Security
+policies go in at the same time — users can only read their own bookings,
+gyms can only read sessions at their venues.
+
+## Seed data as a design tool
+
+The Phase 1 commit includes 291 lines of seed SQL — realistic fake venues,
+realistic fake users, bookings at various states, sessions open and closed.
+
+Seed data is not just for testing. It's a design tool. Building the UI
+against realistic data forces you to handle edge cases early. What does
+the home screen look like when you have 12 upcoming bookings? What does
+the venue card look like when the venue name is 47 characters? What does
+the wallet show when the balance is zero?
+
+These are questions you don't ask until you have data. The seed data makes
+you ask them in Phase 1, not Phase 3.
+
+## Two auth flows
+
+Vigor has two types of users: gym members and gym owners. They log in
+through separate auth flows — `/login` for members, `/gym/login` for
+owners — and the middleware routes them to different parts of the app
+based on their session type.
+
+This separation exists at the auth layer, not just at the UI layer. The
+wrong credentials in the wrong flow produce an error, not access to
+the wrong interface. That distinction matters when the two sides of the
+app have very different permission levels.
+
+---
+
+Next: Phase 2 — wallet, venue discovery, and everything the user sees.

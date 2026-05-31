@@ -1,0 +1,69 @@
+---
+title: "The other side of the door"
+date: 2026-04-24
+description: "Phase 4 built the gym owner portal — everything a venue needs to run Vigor as a business"
+---
+
+A two-sided product needs both sides to work. Phase 4 builds the gym
+owner interface — the screens that a venue sees, not the member.
+
+The user side is about discovery and access. The owner side is about
+operations and money. They share a database but almost no UI.
+
+## The dashboard
+
+`GymDashboardClient` — 418 lines — is the first thing a gym owner sees
+after login. Active sessions right now, bookings for today, revenue
+this week, and a quick view of the most recent ratings.
+
+The design question for any operations dashboard is: what does the person
+actually need to act on quickly? For a gym owner with Vigor, the answer
+is: is anyone in my facility right now, and what are they booked for?
+Everything else is secondary. The dashboard surfaces those two things
+prominently.
+
+## Sessions and settlements
+
+`GymSessionsScreen` — 340 lines — shows the full history of sessions at
+the venue: who, when, how long, what it cost, whether it was user-closed
+or auto-closed. Filterable by date range.
+
+`GymSettlementsScreen` — 320 lines — is where the business model becomes
+explicit. Vigor collects the token payment from the user, holds it, and
+pays out to the gym on a settlement cycle. The screen shows pending
+settlements (tokens earned but not yet paid out), completed payouts
+(with transfer references), and the cumulative earnings over time.
+
+The settlement model — platform collects, platform pays — is a deliberate
+choice. It means Vigor controls the payment flow, can apply platform
+fees, and can hold funds for dispute resolution. The gym never handles
+direct user payments through the app.
+
+## Venue editor and ratings
+
+`GymVenueEditorScreen` — 362 lines — lets the owner edit their listing:
+name, address, amenities checklist, pricing by duration tier, opening
+hours, photos (linked by URL in this version). Changes publish
+immediately to the member-facing venue pages.
+
+`GymRatingsScreen` — 262 lines — shows member reviews aggregated by
+category (cleanliness, equipment, staff, value) alongside the individual
+rating submissions. No moderation interface in this version — all ratings
+are published as submitted. That's a known gap.
+
+## The SQL that defines Phase 4
+
+The migration for Phase 4 is 145 lines. It adds the settlements table
+(with pending/completed/disputed states), the payout records table, the
+rating aggregation view, and the RLS policies that let gym owners see
+their venue data and nothing else.
+
+The RLS for settlements is the most careful piece. A gym owner should
+see settlements for their venues. They should not see any other gym's
+settlement records, even indirectly through aggregated queries. The policy
+joins through venue ownership on every read.
+
+---
+
+Vigor has a full user journey on both sides. The product exists. Next is
+deploying it to real venues.

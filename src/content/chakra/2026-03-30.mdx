@@ -1,0 +1,62 @@
+---
+title: "The app that knows your momentum"
+date: 2026-03-30
+description: "Drift, Momentum, Traces — a Today view built on the premise that the interesting question isn't what's due, it's whether you're moving"
+---
+
+The Today view is not a filtered version of the task list. It's a
+different kind of interface entirely — one that tries to answer a
+question most productivity apps don't ask: not what needs to be done,
+but how you're doing at doing things.
+
+## Three concepts
+
+**Drift** measures whether you're slipping on long-term goals. It looks
+at tasks across your Spaces and identifies patterns of avoidance — the
+category of work that keeps getting moved to tomorrow, the project whose
+overdue count has been growing for a week. Drift isn't about individual
+tasks. It's about whether your actual behaviour matches your stated
+priorities.
+
+**Momentum** is recent completion velocity. How many tasks did you finish
+in the last seven days? Is that number trending up or down compared to
+the seven days before? Momentum doesn't care whether the tasks were
+important — only whether you're moving. It's a signal, not a score.
+
+**Traces** is the record of what actually happened. Not what was planned,
+not what's still pending — what was done, when, in what order. The Supabase
+migration for this session added a traces table to persist this history.
+Traces is the raw material that both Drift and Momentum are computed from.
+
+## What the Today page actually shows
+
+`app/today/page.tsx` is 533 lines. It renders your due-today tasks at the
+top, then a momentum bar, then drift signals by Space, then your traces
+for the last few days. The layout is intentionally dense — it's a
+dashboard, not a task list.
+
+`lib/insights.ts` grew from 181 lines to 359. The new calculations live
+there: the rolling 7-day completion count, the per-space overdue trend,
+the streak calculation that feeds the momentum display.
+
+The Supabase migration — `add_streak_and_traces.sql` — adds a streak
+counter to the user profile and the traces table for storing completion
+events with timestamps and context.
+
+## Why this feature exists
+
+The core problem with most task managers is that they are indifferent to
+whether you're actually using them well. They show you tasks. They don't
+tell you whether you're making progress.
+
+A task manager that only shows lists can have 200 tasks in it and you'll
+feel productive for adding them. One that tracks momentum will notice
+when you've closed two tasks in seven days.
+
+The Today view is the app's attempt to be honest with you about your
+own behavior. Whether that's useful depends on whether you want that
+honesty.
+
+---
+
+Next: sharing Spaces with other people.

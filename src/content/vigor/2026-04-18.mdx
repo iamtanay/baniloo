@@ -1,0 +1,61 @@
+---
+title: "Wallet, venues, and the user side of the door"
+date: 2026-04-18
+description: "Phase 2 built everything the member sees — wallet top-up, venue discovery, booking confirmation, and activity history"
+---
+
+Phase 1 established what the data looks like. Phase 2 is when Vigor
+becomes an app — when there's something to actually use.
+
+Five screens, all built in a single session. Each one is the right size
+for its job and no larger.
+
+## The wallet
+
+`WalletScreen` — 266 lines. The wallet shows your current balance, your
+recent token purchases, and your recent sessions with what they cost.
+Topping up goes through an API route that validates the purchase amount
+and writes to the transaction log.
+
+The wallet is token-based rather than direct payment. This is a deliberate
+decoupling. The user's relationship with Vigor is in tokens. The token
+price can change, promotions can be expressed as bonus tokens, the actual
+payment provider can be swapped without touching the booking or session
+logic. Direct payment would wire the payment system into every part of
+the product that deals with cost.
+
+## Venue discovery
+
+`ExploreScreen` — 228 lines. A list of venues with filters for distance,
+price tier, and amenity type. Each card shows the venue name, pricing,
+a rating, and available equipment categories.
+
+`VenueDetailScreen` — 338 lines — is the most complex screen in Phase 2.
+It shows everything: venue photos (placeholder in this build), the full
+amenity list, pricing by duration, current availability, and the booking
+flow. The booking is done inline — you pick a time slot, confirm the
+token cost, and submit. No separate booking page.
+
+## The home screen and activity
+
+`HomeScreen` — 279 lines — shows today's bookings and quick actions. If
+you have a booking starting within two hours, a prominent card shows the
+venue name and your entry instructions. The idea is that the home screen
+in the morning tells you what's happening today without requiring you to
+navigate anywhere.
+
+`ActivityScreen` — 235 lines — is the full history. Every session ever
+completed, with duration, token cost, and venue name. Sortable by date
+or venue.
+
+## What Phase 2 establishes
+
+Phase 2 is the complete user journey on the member side: discover a venue,
+book it, pay with tokens, see the confirmation, review history. The only
+missing piece is the session itself — actually being at the gym. That's
+Phase 3.
+
+---
+
+Next: Phase 3 — QR generation, session lifecycle, and the scan that
+starts your workout.

@@ -1,0 +1,166 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allEntries = await getCollection('chakra');
+const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Layout
+  title="Chakra"
+  description="A personal life management and task tracker — kanban, calendar, Today view with momentum and drift tracking, recurring tasks, multiuser Spaces, and Streams."
+  currentPath="/chakra">
+  <section class="project-page">
+    <div class="project-header">
+      <p class="section-label">Active</p>
+      <h1>Chakra</h1>
+      <p class="project-intro">
+        A personal life management and task tracker. Not another to-do app — Chakra is built around
+        the idea that the interesting question isn't what's on your list, it's whether you're actually moving.
+      </p>
+      <p class="project-intro">
+        Kanban, calendar, list, a Today view that tracks momentum and drift over time, recurring tasks,
+        multiuser Spaces, Streams, and a Karma system. Version 1 is shipped.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <section class="entries-section">
+      <h2>Notes</h2>
+      <p class="section-intro">
+        Build log in reverse chronological order.
+      </p>
+
+      <div class="entries-list" id="entriesList">
+        {entries.map((entry) => (
+          <a href={`/chakra/${entry.slug}`} class="entry-card" data-entry-data={JSON.stringify({
+            slug: entry.slug,
+            title: entry.data.title,
+            description: entry.data.description,
+            date: entry.data.date.toISOString()
+          })}>
+            <div class="entry-card-header">
+              <span class="entry-date">
+                {entry.data.date.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+            <h3 class="entry-title">{entry.data.title}</h3>
+            {entry.data.description && (
+              <p class="entry-desc">{entry.data.description}</p>
+            )}
+          </a>
+        ))}
+      </div>
+    </section>
+  </section>
+</Layout>
+
+<style>
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 24px;
+  }
+
+  .project-page h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  .project-intro {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.6em;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 64px 0;
+  }
+
+  .entries-section h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .section-intro {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+    margin-bottom: 32px;
+  }
+
+  .entries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    text-decoration: none;
+    display: block;
+    transition: border-color 150ms ease;
+  }
+
+  .entry-card:hover {
+    border-color: var(--accent);
+  }
+
+  .entry-card:hover .entry-title {
+    color: var(--accent);
+  }
+
+  .entry-card-header {
+    margin-bottom: 8px;
+  }
+
+  .entry-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .entry-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color 150ms ease;
+  }
+
+  .entry-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .project-page h1 {
+      font-size: 32px;
+    }
+  }
+</style>

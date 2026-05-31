@@ -1,0 +1,60 @@
+---
+title: "4:32 AM and the whole app exists"
+date: 2026-03-26
+description: "The first commit: a full kanban board, reports page, Supabase schema, and mobile layout — in a single sitting"
+---
+
+The timestamp on the first commit is 4:32 AM. Not the time most people
+would pick to start a project. But the whole app exists by then: login,
+kanban board, mobile board, reports, projects, task modals, Supabase
+schema, middleware. 39 files, roughly 5900 lines.
+
+## What's already there
+
+Most projects start with a scaffold and grow into something. Chakra
+started with most of the product already defined.
+
+The first commit has a `KanbanBoard` and a `MobileBoard` in the same
+codebase — not a kanban with a responsive fallback, but two distinct
+layouts, both first-class from day one. The assumption is that the app
+will be used on both desktop and phone. The desktop gets columns; the
+phone gets a vertical scrollable board. Neither is a simplified version
+of the other.
+
+`DailyPulse` is in there too. The component shows a quick summary of
+what's been done and what's pending — not a task list, a summary. It
+lives in the layout, not in a specific page. The intent from day one
+is to make your overall state visible without having to look for it.
+
+The reports page exists from the first commit. `lib/insights.ts` — 181
+lines — computes commitment metrics from task history. That's
+unusual. Most apps add analytics late; here the analytic layer was
+designed before the basic CRUD was even wired up.
+
+## Supabase before the UI
+
+The Supabase schema — projects and tasks tables, with the appropriate
+foreign keys and auth — was in the repo before most of the UI was
+connected to it. The middleware was also present: route protection based
+on session, redirecting unauthenticated users to login.
+
+That ordering is deliberate. An app built schema-first makes different
+decisions than one built UI-first. When the data model comes first, the
+question "what does this feature need to store?" is answered before
+"what does this feature look like?" The visual design has to fit the
+data, not the other way around.
+
+## The name on the project switcher
+
+One component worth noting: `ProjectSwitcher` — 164 lines. A dropdown
+in the top bar that lets you move between projects without navigating
+away from what you're doing. The fact that this was in the first commit
+says something about what the app is for. It's not for managing one
+project. It's for managing several, simultaneously, without losing
+context when you switch between them.
+
+The name Chakra was already on the logo SVG. The vision was already there.
+
+---
+
+Next: recurring tasks.

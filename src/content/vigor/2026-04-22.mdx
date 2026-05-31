@@ -1,0 +1,78 @@
+---
+title: "The QR code that runs your workout"
+date: 2026-04-22
+description: "Phase 3 wired up the full session lifecycle — entry QR, active timer, exit scan, auto-close for forgotten sessions, and four bugs that needed fixing before it held together"
+---
+
+Phase 3 is where Vigor stops being a booking app and becomes a physical
+access system. The QR code is the hinge between the two.
+
+## The session lifecycle
+
+The flow: you have a confirmed booking → arrive at the venue → the gym
+staff sees your upcoming booking in their portal → a QR code is generated
+for your entry → you scan it → a session opens → a timer starts → you
+scan your exit QR when you leave → the session closes and tokens are
+deducted.
+
+Each arrow in that flow is a server-side operation. Five new API routes:
+`generate-entry-qr`, `generate-exit-qr`, `validate-scan`, `active`,
+and `auto-close`.
+
+`validate-scan` — 367 lines — is the most critical piece. It takes a scanned
+QR payload, validates the booking is active and within its time window,
+checks the user hasn't already opened a session for this booking, sets
+the session state, and returns the appropriate response for the gym's
+scan portal. Every security constraint lives here: expired QR rejection,
+duplicate scan prevention, session state machine enforcement.
+
+## The active session screen
+
+`ActiveSessionScreen` — 678 lines — is what the user sees once they're
+inside the venue. A live timer showing how long the session has been
+running. The venue name, address, and emergency contact. The exit QR
+code, ready to scan. Session cost updating in real-time as minutes pass.
+
+The screen holds state in a cookie — session ID and start time — so
+if the user closes the app mid-workout and reopens it, they land back
+on the active session view rather than the home screen. That detail
+required careful session cookie handling in the Next.js middleware.
+
+## Four bugs, one fix commit
+
+Phase 3 shipped with four bugs that needed a cleanup pass the next day.
+
+The wallet balance display wasn't updating after a session closed — a
+stale SWR cache issue. Fixed with a targeted cache invalidation after
+session close.
+
+Session cookies were being corrupted when the Next.js router prefetched
+certain routes — the cookie value was being partially overwritten. Fixed
+by tightening the cookie write path to only fire on explicit session
+transitions.
+
+A hydration mismatch in the active session screen: the server rendered
+a static "session started" time based on server clock, the client
+rehydrated with a different value. Fixed by rendering the time
+client-side only after mount.
+
+The QR entry window — the booking was valid for 30 minutes after the
+scheduled start time, but the validation logic was checking against
+the wrong timestamp field. Fixed with a straightforward field reference
+correction.
+
+## Auto-close
+
+The auto-close route runs as a cron job. Sessions that are still open
+after a configurable maximum duration (4 hours by default) are closed
+automatically with a flag indicating they were auto-closed rather than
+user-initiated. This handles the case where someone forgets to scan out,
+or the gym's scanner goes offline at end of day.
+
+The auto-close charge is the same as a normal session close — the user
+pays for the time. The flag is recorded so the gym can identify and
+manually adjust edge cases.
+
+---
+
+Next: Phase 4 — the gym owner portal.

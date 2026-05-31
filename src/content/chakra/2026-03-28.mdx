@@ -1,0 +1,62 @@
+---
+title: "Tasks that come back"
+date: 2026-03-28
+description: "Building recurring tasks meant answering a harder question first: when does a recurring task actually exist?"
+---
+
+A recurring task looks simple until you have to implement it. The
+question that looks like "how do I repeat a task?" turns out to be
+"what is a task?".
+
+## The conceptual problem
+
+Most tasks are singular. They exist, they get done, they disappear. A
+recurring task exists differently. It has a definition — do this thing,
+on this schedule — and then a series of instances that appear over time.
+The definition and the instance are not the same object. You can mark
+Monday's instance done without touching Tuesday's.
+
+`lib/recurrence.ts` — 284 lines — is the answer to this. It defines the
+recurrence rule schema (daily, weekly, monthly, with cadence and anchor
+day), the instance generation logic (given a rule and a date range, what
+instances exist?), and the completion semantics (marking an instance done
+means creating a completion record for that specific occurrence, not
+toggling the rule itself).
+
+The Supabase migration for this was 73 lines — new columns on the tasks
+table for recurrence rules, a separate completions table to track which
+occurrences were done.
+
+## What changed in the UI
+
+`TaskModal` grew significantly — from 284 lines to over 700. The modal
+now handles both the definition of a recurring task (frequency selector,
+anchor day, end date) and the rendering of individual instances. When
+you open a recurring task, you see this occurrence's details, not the
+abstract rule.
+
+`CompleteModal` needed to understand two completion modes: complete this
+instance only, or complete and stop recurrence entirely. The distinction
+matters because the most common action — marking today's daily task done —
+should be frictionless, while the decision to stop a recurring task
+entirely should require deliberate intent.
+
+`ProjectModal` was also updated to surface recurring task counts in the
+project summary — a project that contains recurring tasks looks different
+from one that doesn't.
+
+## The edge cases that define the feature
+
+The interesting bugs are always in the edge cases. A weekly task created
+on a Wednesday that you then try to view on a Tuesday — does Tuesday's
+instance exist yet? What if you complete an instance that wasn't due until
+tomorrow? What happens to instances when you archive the parent project?
+
+Each of these is a policy decision disguised as a bug. Getting them right
+means having a clear model of what recurring means. The model is: the
+definition lives in the database; instances are computed at display time;
+completions are stored as facts about specific dates.
+
+---
+
+Next: Today view — Drift, Momentum, and Traces.

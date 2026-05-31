@@ -1,0 +1,218 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('thechant');
+  return entries.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+
+const formattedDate = entry.data.date.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
+});
+---
+
+<Layout
+  title={`${entry.data.title} — theChant`}
+  description={entry.data.description ?? `A note on theChant — real-time fan reactions for FIFA World Cup 2026.`}
+  currentPath="/thechant">
+  <article class="thinking-page">
+    <nav class="breadcrumb">
+      <a href="/thechant">← Back to theChant</a>
+    </nav>
+
+    <header class="thinking-header">
+      <p class="thinking-date">{formattedDate}</p>
+      <h1>{entry.data.title}</h1>
+      {entry.data.description && (
+        <p class="thinking-description">{entry.data.description}</p>
+      )}
+    </header>
+
+    <div class="thinking-content">
+      <Content />
+    </div>
+  </article>
+</Layout>
+
+<style>
+  .breadcrumb {
+    margin-bottom: 40px;
+  }
+
+  .breadcrumb a {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-2);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .breadcrumb a:hover {
+    color: var(--accent);
+  }
+
+  .thinking-header {
+    margin-bottom: 48px;
+  }
+
+  .thinking-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    margin-bottom: 16px;
+  }
+
+  .thinking-header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .thinking-description {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text-2);
+    font-style: italic;
+  }
+
+  .thinking-content {
+    max-width: 720px;
+  }
+
+  .thinking-content :global(h2) {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin-top: 48px;
+    margin-bottom: 16px;
+  }
+
+  .thinking-content :global(h3) {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 32px;
+    margin-bottom: 12px;
+  }
+
+  .thinking-content :global(p) {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.6em;
+  }
+
+  .thinking-content :global(ul),
+  .thinking-content :global(ol) {
+    margin-left: 1.5em;
+    margin-bottom: 1.6em;
+  }
+
+  .thinking-content :global(li) {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 0.5em;
+  }
+
+  .thinking-content :global(code) {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .thinking-content :global(pre) {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    overflow-x: auto;
+    margin-bottom: 1.6em;
+  }
+
+  .thinking-content :global(pre code) {
+    background: none;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .thinking-content :global(hr) {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 48px 0;
+  }
+
+  .thinking-content :global(a) {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 150ms ease;
+  }
+
+  .thinking-content :global(a:hover) {
+    opacity: 0.8;
+  }
+
+  .thinking-content :global(strong) {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .thinking-content :global(table) {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.6em;
+    font-size: 15px;
+  }
+
+  .thinking-content :global(th) {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-2);
+  }
+
+  .thinking-content :global(td) {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .thinking-content :global(tr:last-child td) {
+    border-bottom: none;
+  }
+
+  @media (max-width: 600px) {
+    .thinking-header h1 {
+      font-size: 32px;
+    }
+
+    .thinking-content :global(h2) {
+      font-size: 22px;
+    }
+  }
+</style>

@@ -1,0 +1,81 @@
+---
+title: "A world map, eight thousand lines, and 12 days left"
+date: 2026-05-30
+description: "The complete frontend in one session — SVG world map, floating reactions, split-screen match view, continent filter, and the 12-phase ship plan"
+---
+
+The initial commit was a blank Next.js scaffold. This commit is a complete
+frontend application. Every screen, every interaction, every animation.
+None of it connects to a real database yet. All of it needs to.
+
+There are 12 days until the opening match.
+
+## The map decision
+
+The first real technical decision was the world map renderer. The initial
+plan was deck.gl — a WebGL-based geospatial rendering library. deck.gl is
+the right choice for data-dense map visualisations at scale. It is not the
+right choice for a map that needs to load fast on mobile, show a clean full
+globe at all times, and display coloured dots with reaction counts.
+
+The replacement is an SVG equirectangular projection using world-atlas
+110m TopoJSON. Every country is an SVG path. The full globe is always
+visible — no zoom calculations, no viewport management, no WebGL
+initialisation path. A `ResizeObserver` tracks the container; hotspot
+label positions are derived from the actual rendered SVG bounds so they
+align correctly with reaction dots at any screen size.
+
+The performance difference is significant. Removing deck.gl eliminated the
+largest bundled dependency and the entire WebGL initialisation path.
+
+## The reaction layer
+
+`FloatingEmojis` — each reaction tap spawns 4–6 emoji particles that float
+upward through the map view with staggered delays, scale and fade, and
+slight rotation. They dismiss automatically after 2.8 seconds. The effect
+is the visual signal that something is happening right now, not just that
+a count incremented somewhere.
+
+`ReactionPanel` shows the live "Vibe right now" — the dominant emotion
+in the current reaction window with its percentage and a colour-coded
+progress bar. The bar glows in the selected emoji's colour.
+
+## The match experience
+
+`SplitScreen` renders full-bleed team flags meeting at an animated gold
+seam. A live minute badge appears in the top right when a match is in
+progress.
+
+`MomentDetector` handles the big events — goals, red cards, penalties.
+A 28px loud label flashes at the screen edges in a two-pulse pattern.
+The reaction spike counter shows how many people reacted in the last
+30 seconds.
+
+`ChantWall` is the live text layer — fan chants and "I Was There"
+declarations, each with the author's allegiance colour on the left border.
+
+## The continent filter
+
+A `ContinentSelector` pill bar overlays the top of the map. Six options:
+All, Americas, Europe, Africa, Asia, Oceania. Each continent has a precise
+SVG viewBox bounding box. Selecting one zooms the map to that region,
+filters the visible reaction dots and hotspot labels to that continent's
+countries, and updates the reaction count badge.
+
+`computeSvgBounds` is a pure function. It recalculates label positions
+from the active viewBox on every continent change so dots and labels
+stay pixel-aligned at every zoom level.
+
+## What's left
+
+The frontend is done. The plan is 12 phases, written the same day:
+Supabase setup, auth wiring, real match data from the API-Football feed,
+real-time reactions via Supabase subscriptions, QR "I Was There" codes
+at venues, chant submission, moment auto-detection, notifications, and
+production deploy.
+
+Everything above runs on mock data. The clock is running.
+
+---
+
+12 days to June 11. The plan exists. The build starts now.
