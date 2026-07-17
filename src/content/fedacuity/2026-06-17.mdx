@@ -1,0 +1,70 @@
+---
+title: "The gap shrank from 13 points to 1.4, and that's the good news"
+date: 2026-06-17
+description: "Fixing an evaluation that was rigged in my own favor — a two-care-type held-out set, genuine multi-client clustering, and real MIMIC-IV access at last."
+---
+
+The audit two weeks ago left one uncomfortable thing unfixed. My headline
+result — Clustered FL beating FedAvg — came partly from an evaluation
+designed, however unconsciously, to make CFL win. Both held-out facilities
+were Independent Living. FedAvg was trained almost entirely on Memory Care
+and Skilled Nursing clients, so of course it fell apart on IL. I hadn't
+discovered that CFL was better; I had built a test it couldn't lose.
+
+This session was about making the experiment honest enough that a smaller
+number would mean something.
+
+## A held-out set that tests generalization
+
+The held-out facilities moved from `[8, 9]` — both IL — to `[6, 9]`: one
+SNF and one IL. Now the generalization claim is tested across two clinically
+distinct care types instead of one, and a global model no longer faces a
+population it was structurally guaranteed to fail on.
+
+The IL cluster problem from the audit also got a real fix. Facility 8 moved
+into the IL *training* cluster, which finally gives that cluster two
+training clients. For the first time there is genuine two-client federated
+averaging happening inside the IL cluster — not the single-facility
+zero-shot transfer I'd had to disclose as a limitation last time. The
+contribution can now be described as what it actually does.
+
+While I was in there I deleted `clustered_fl.py` entirely. It held a dead
+`ClusteredFLServer` aggregation path that no longer ran — the production
+aggregation lives in `simulation.py`. Two implementations of the core
+contribution, one of them dead, is exactly the kind of thing that produces
+a confident wrong answer six weeks later. It's gone.
+
+## MIMIC-IV, for real this time
+
+The PhysioNet credentialed access came through. Until now the fidelity
+validation had been running against a synthetic proxy with a note in the
+paper promising real data "pending access." That note is deleted.
+`mimic_preprocessor.py` and `mimic_analysis.py` now pull the real MIMIC-IV
+elderly cohort, and `fidelity.py` anchors to it.
+
+Figure 2 became a two-panel figure: KS-test distribution overlays on one
+side, and on the other a within-MIMIC-IV cohort calibration — 27.2% of the
+elderly cohort has a post-acute discharge disposition, which lands within
+0.8 points of my 28% SNF mismatch target. That calibration is the strongest
+external evidence the synthetic dataset behaves like a real population, and
+it wasn't something I could fabricate.
+
+## The number
+
+Rerun end to end: CFL 0.9827 vs FedAvg 0.9685. A 1.42-point gap — SNF
+contributes +0.36, IL contributes +2.65.
+
+That is a fraction of the 13.2 points I was quoting at midsem. It is also
+the first version of this result I would defend without a caveat in my
+throat. The gap shrank because the evaluation stopped flattering the
+method. A defensible 1.4 beats an inflated 13 in every way that matters for
+a dissertation someone is going to read closely.
+
+Figures 3 through 5 regenerated, `main.tex` updated with every new number,
+validation passing, pushed to origin.
+
+---
+
+Next: the third contribution — the XAI Audit Scorecard, built on real SHAP
+instead of the placeholder scores that have been sitting in the repo since
+April.

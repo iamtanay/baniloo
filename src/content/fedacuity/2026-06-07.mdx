@@ -1,0 +1,73 @@
+---
+title: "I audited my own results and they didn't survive"
+date: 2026-06-07
+description: "The midsem numbers looked great. Then I ran a research audit on my own pipeline and found six bugs holding the results up."
+---
+
+June 7 was two sessions in one day. In the morning I finished the midsem
+deliverables: a full 50-round simulation, held-out evaluation, five
+figures, the paper sections filled with real numbers, a slide deck. The
+headline was clean — Clustered FL beat FedAvg by 13.2 points on held-out
+facilities. I could have presented it as-is.
+
+Instead I spent the afternoon auditing my own code. Most of that headline
+did not survive.
+
+## The aggregation wasn't aggregating
+
+`_aggregate_xgb()` in `simulation.py` did this:
+`max(client_results.values(), key=lambda x: x[1])[0]`. It was supposed to
+combine eight facilities' models into one. But every facility has exactly
+657 training rows, so the "weight" being maxed over was identical across
+all of them. `max()` just returned whichever client Python happened to
+iterate last. No averaging. No federation. The "FedAvg" baseline I had
+been comparing against was one arbitrary facility's model.
+
+FedProx was worse in a quieter way. The client stored `self.mu` — the
+proximal term that is the whole point of FedProx — and never once used it
+in `fit()`. FedProx was byte-for-byte identical to FedAvg across all 50
+rounds. Presenting it as a third comparison strategy was not a bug so much
+as a lie I hadn't noticed telling.
+
+And the tree budget: warm-start added `local_epochs * 10` trees per round,
+so the federated models grew to 2,600 trees by round 50 while the local
+baseline had 100. Federation was "winning" partly because I had handed it
+26x the model capacity.
+
+## The data was clinically impossible
+
+Two schema bugs would have made a Long-Term Care clinician reject the
+dataset on sight. `mds_adl_summary` — which in MDS 3.0 is *definitionally*
+the sum of four ADL subscores — was being generated independently by
+CTGAN, giving it near-zero correlation with its own components.
+`nursing_hours_lpn` was missing from `NON_IID_SPEC` entirely, so
+Independent Living facilities got ~5.3 LPN hours per resident per day
+against a real CMS benchmark near 0.7 — more nursing than Memory Care,
+which is backwards.
+
+The DP sweep had its own tell: `torch.manual_seed()` was called once at
+import, so each epsilon run inherited different RNG state, and ε=10 scored
+*worse* than ε=5. Larger privacy budget, worse model — a direct violation
+of the theory the whole section rests on.
+
+## The number that survived
+
+The fix sprint was mechanical once the audit was honest: real
+prediction-consensus aggregation, a fixed 100-tree budget, per-call
+seeding, `mds_adl_summary` recomputed as the ADL sum post-CTGAN, five
+features added to `NON_IID_SPEC`. I regenerated the data and reran
+everything. New held-out result: CFL 0.9677 vs FedAvg 0.9057.
+
+Then the hardest disclosure. The IL cluster has exactly one training
+facility, because facilities 8 and 9 are held out. So CFL's "federation"
+in that cluster was never federation — it was zero-shot transfer from a
+single facility to two unseen ones. That has to go in the paper as a
+limitation, not stay buried as a flattering result.
+
+Sixteen of seventeen validity checks pass now. The midsem is behind me. The
+number is smaller and I trust it.
+
+---
+
+Next: a held-out design that isn't rigged in CFL's favor, and real
+MIMIC-IV instead of a synthetic proxy.

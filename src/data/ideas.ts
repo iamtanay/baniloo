@@ -1,4 +1,4 @@
-export type IdeaStatus = 'active' | 'thinking' | 'dormant';
+export type IdeaStatus = 'active' | 'shipped' | 'thinking' | 'dormant';
 
 export interface Idea {
   title: string;
@@ -30,7 +30,7 @@ const ideasData: Idea[] = [
     description:
       'M.TECH dissertation. Federated learning for Long-Term Care facilities — predicting skilled nursing needs without ever moving patient data off-premises.',
     href: '/fedacuity',
-    status: 'active',
+    status: 'shipped',
     date: '2026-04-18',
   },
   {
@@ -67,7 +67,7 @@ const ideasData: Idea[] = [
   },
 ];
 
-const STATUS_ORDER: Record<IdeaStatus, number> = { active: 0, thinking: 1, dormant: 2 };
+const STATUS_ORDER: Record<IdeaStatus, number> = { active: 0, shipped: 1, thinking: 2, dormant: 3 };
 
 export const ideas: Idea[] = ideasData.sort((a, b) => {
   const statusDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];

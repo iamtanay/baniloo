@@ -1,0 +1,73 @@
+---
+title: "The statistical test I'd been reporting was meaningless"
+date: 2026-07-16
+description: "The third contribution, an honest fairness story, and throwing out a p-value that never had a sample behind it. The last FedAcuity entry."
+---
+
+This is the last entry. The paper is on arXiv, the third contribution is
+built, and the dissertation is done. Getting here meant building the XAI
+scorecard I'd promised since April — and it meant deleting the single most
+impressive-looking number in the whole project.
+
+## The fairness axis is the real result
+
+C3 is the XAI Audit Scorecard, and this session it stopped being
+placeholder scores and became real SHAP. `shap_pipeline.py` reconstructs
+each strategy's deployed model and computes SHAP values per care-type test
+partition; four dimensions — fidelity, stability, fairness, plausibility —
+assemble into a radar chart.
+
+The headline is dimension three, fairness, and it finally gives the paper a
+point that isn't just "CFL's AUC is a bit higher." A single global FedAvg
+model collapses toward the majority care types: it misses 78% of Memory
+Care mismatch events (TPR 0.22) and drops to 0.67 AUC on Independent
+Living. Clustered FL keeps every subgroup above 0.96 AUC and halves the
+equalized-odds gap, 0.39 down to 0.18. A pooled model looks fine on
+aggregate accuracy while quietly failing an entire resident population —
+which is exactly the harm a fairness audit exists to catch.
+
+I made a point of not writing a clean-sweep story. CFL is slightly *worse*
+on dimension two, stability. The global models are steadier under
+perturbation. That's on the radar chart as-is. A scorecard where the method
+I'm advocating wins every axis is a scorecard nobody should believe.
+
+## Throwing out the p-value
+
+The load-bearing fix was statistical, and it was uncomfortable. For two
+months I'd been reporting a Mann-Whitney U test on CFL vs FedAvg across
+rounds — U=400, p&lt;0.001, the kind of number that ends an argument.
+
+It was vacuous. The pipeline is deterministic within a round, so the
+per-round AUCs it produced were constant. There was no variation, which
+means there was no sample — I had been running a significance test on
+pseudo-replicated copies of the same number. It looked like evidence and
+was nothing.
+
+The replacement is a paired instance-level bootstrap: 2,000 resamples over
+438 pooled held-out instances. ΔAUC is +0.0142, 95% CI [−0.0012, +0.0345],
+with CFL higher in 96.2% of resamples. I reported that confidence interval
+plainly in the abstract — including the fact that it crosses zero. A gap
+that might be zero, stated honestly, is worth more than a p&lt;0.001 that was
+never real.
+
+## The controlled-benchmark reframe
+
+The last honesty pass was about the absolute numbers. The mismatch label is
+a known deterministic function of the input features, so AUCs near 0.98 are
+structural artifacts of the benchmark, not evidence the model is
+clinically remarkable. So the paper's claims are now explicitly
+comparative — CFL versus FedAvg under identical conditions — with the
+structural point disclosed as a limitation, and temporal prediction named
+as the future work that would escape it.
+
+The DP sweep got hardened to five paired seeds so only the noise multiplier
+varies, giving a monotonic privacy-utility curve (no-DP 0.9812 down to
+0.8347 at ε=10). Figure 1 became a real architecture diagram. The paper
+compiles standalone on arXiv's pdflatex path — eight pages, zero undefined
+references — and the bundle is submitted.
+
+What I'm keeping from this project isn't the method. It's the audit habit.
+The result that survived to arXiv is a 1.4-point gap with a confidence
+interval that touches zero and one genuinely decisive fairness axis. It is
+so much smaller than what I started with, and it's the only version I ever
+fully trusted.
