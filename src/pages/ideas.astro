@@ -1,28 +1,22 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import IdeaCard from '../components/IdeaCard.astro';
-import { ideas } from '../data/ideas';
+import IdeaGroup from '../components/IdeaGroup.astro';
+import { ideaGroups } from '../data/ideas';
 ---
 
 <Layout
   title="Ideas"
-  description="All active and in-progress ideas by Tanay Kashyap — protocols, systems, and infrastructure built from first principles."
+  description="All active and in-progress ideas by Tanay Kashyap — protocols and tools under Baniloo Labs, plus solo research and apps, built from first principles."
   currentPath="/ideas">
   <section class="ideas-page">
     <h1>Ideas</h1>
     <p class="page-intro">
-      Six active projects — from open protocols and research to apps and things shipping this month. All documented as they get built.
+      Tools and protocols under Baniloo Labs, and a handful I build on my own — from open protocols and research to apps and things shipping this month. All documented as they get built.
     </p>
 
-    <div class="ideas-list">
-      {ideas.map((idea) => (
-        <IdeaCard
-          title={idea.title}
-          description={idea.description}
-          href={idea.href}
-          status={idea.status}
-          date={idea.date}
-        />
+    <div class="ideas-groups">
+      {ideaGroups.map((group) => (
+        <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
       ))}
     </div>
   </section>
@@ -44,12 +38,6 @@ import { ideas } from '../data/ideas';
     line-height: 1.8;
     color: var(--text-2);
     margin-bottom: 48px;
-  }
-
-  .ideas-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
   }
 
   @media (max-width: 600px) {

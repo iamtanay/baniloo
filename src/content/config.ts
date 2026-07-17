@@ -54,6 +54,15 @@ const thechant = defineCollection({
   }),
 });
 
+const postmortem = defineCollection({
+  type: 'content',
+  schema: z.object({
+    title: z.string(),
+    date: z.date(),
+    description: z.string().optional(),
+  }),
+});
+
 export const collections = {
   loomed,
   pulsesyn,
@@ -61,4 +70,5 @@ export const collections = {
   chakra,
   vigor,
   thechant,
+  postmortem,
 };

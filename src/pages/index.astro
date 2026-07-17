@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import IdeaCard from '../components/IdeaCard.astro';
-import { ideas } from '../data/ideas';
+import IdeaGroup from '../components/IdeaGroup.astro';
+import { ideaGroups } from '../data/ideas';
 ---
 
 <Layout
@@ -33,15 +33,9 @@ import { ideas } from '../data/ideas';
       <a href="/ideas">All ideas →</a>
     </div>
 
-    <div class="ideas-list">
-      {ideas.map((idea) => (
-        <IdeaCard
-          title={idea.title}
-          description={idea.description}
-          href={idea.href}
-          status={idea.status}
-          date={idea.date}
-        />
+    <div class="ideas-groups">
+      {ideaGroups.map((group) => (
+        <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
       ))}
     </div>
   </section>
@@ -129,12 +123,6 @@ import { ideas } from '../data/ideas';
 
   .ideas-header a:hover {
     color: var(--accent);
-  }
-
-  .ideas-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
   }
 
   @media (max-width: 600px) {

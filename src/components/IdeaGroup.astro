@@ -1,0 +1,70 @@
+---
+import IdeaCard from './IdeaCard.astro';
+import type { Idea } from '../data/ideas';
+
+interface Props {
+  label: string;
+  tagline: string;
+  ideas: Idea[];
+}
+
+const { label, tagline, ideas } = Astro.props;
+---
+
+<div class="idea-group">
+  <div class="idea-group-banner">
+    <h3 class="idea-group-label">{label}</h3>
+    <p class="idea-group-tagline">{tagline}</p>
+  </div>
+
+  <div class="idea-group-list">
+    {ideas.map((idea) => (
+      <IdeaCard
+        title={idea.title}
+        description={idea.description}
+        href={idea.href}
+        status={idea.status}
+        date={idea.date}
+      />
+    ))}
+  </div>
+</div>
+
+<style>
+  .idea-group + .idea-group {
+    margin-top: 44px;
+  }
+
+  .idea-group-banner {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .idea-group-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .idea-group-tagline {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-2);
+    margin: 0;
+  }
+
+  .idea-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+</style>

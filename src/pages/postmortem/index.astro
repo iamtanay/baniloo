@@ -1,0 +1,259 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allEntries = await getCollection('postmortem');
+const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+---
+
+<Layout
+  title="Postmortem"
+  description="postmortem — AI-powered, local-first ops intelligence that lives in your terminal. It watches your deploys, git, and logs, and explains why things break using whatever AI you already have."
+  currentPath="/postmortem">
+  <section class="project-page">
+    <div class="project-header">
+      <div class="project-header-top">
+        <p class="section-label">Active · Baniloo Labs</p>
+        <div class="project-links">
+          <a href="https://github.com/Baniloo-Labs/postmortem" target="_blank" rel="noopener noreferrer" class="github-link">
+            <svg class="github-icon" viewBox="0 0 24 24" fill="currentColor" aria-label="GitHub repository">
+              <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+            </svg>
+            <span>Baniloo-Labs/postmortem</span>
+          </a>
+          <a href="https://www.npmjs.com/package/@postmortem-cli/mort" target="_blank" rel="noopener noreferrer" class="npm-link">
+            <span class="npm-mark">npm</span>
+            <span>@postmortem-cli/mort</span>
+          </a>
+        </div>
+      </div>
+      <h1>Postmortem ☠</h1>
+      <p class="project-intro">
+        AI-powered ops intelligence that lives in your terminal. postmortem watches your
+        deploys, your git, your CI, and your logs — and when something breaks, it correlates
+        the events into one explanation and tells you <em>why</em>, using whatever AI you
+        already have. Runs entirely on your machine: no SaaS, no account, no data leaving your box.
+      </p>
+      <p class="project-intro">
+        The bet is that the harness is the product. One normalized event contract, a
+        bring-your-own-brain backend, and a live terminal + web dashboard — everything else
+        (sensors, actuators) is meant to plug into the seams. Install it with
+        <code>npm i -g @postmortem-cli/mort</code> and try the full loop in 60 seconds with
+        <code>mort watch --demo</code>.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <section class="entries-section">
+      <h2>Notes</h2>
+      <p class="section-intro">
+        Build log in reverse chronological order.
+      </p>
+
+      <div class="entries-list" id="entriesList">
+        {entries.map((entry) => (
+          <a href={`/postmortem/${entry.slug}`} class="entry-card" data-entry-data={JSON.stringify({
+            slug: entry.slug,
+            title: entry.data.title,
+            description: entry.data.description,
+            date: entry.data.date.toISOString()
+          })}>
+            <div class="entry-card-header">
+              <span class="entry-date">
+                {entry.data.date.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+            <h3 class="entry-title">{entry.data.title}</h3>
+            {entry.data.description && (
+              <p class="entry-desc">{entry.data.description}</p>
+            )}
+          </a>
+        ))}
+      </div>
+    </section>
+  </section>
+</Layout>
+
+<style>
+  .project-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+    margin-bottom: 0;
+  }
+
+  .project-links {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .github-link,
+  .npm-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    transition: color 150ms ease, border-color 150ms ease;
+  }
+
+  .github-link:hover,
+  .npm-link:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .github-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+  }
+
+  .npm-mark {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
+    color: #fff;
+    background: #CB3837;
+    border-radius: 3px;
+    padding: 1px 4px;
+    flex-shrink: 0;
+  }
+
+  .project-page h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+
+  .project-intro {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text);
+    margin-bottom: 1.6em;
+  }
+
+  .project-intro code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: var(--border);
+    margin: 64px 0;
+  }
+
+  .entries-section h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  .section-intro {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-2);
+    margin-bottom: 32px;
+  }
+
+  .entries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .entry-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    text-decoration: none;
+    display: block;
+    transition: border-color 150ms ease;
+  }
+
+  .entry-card:hover {
+    border-color: var(--accent);
+  }
+
+  .entry-card:hover .entry-title {
+    color: var(--accent);
+  }
+
+  .entry-card-header {
+    margin-bottom: 8px;
+  }
+
+  .entry-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+
+  .entry-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color 150ms ease;
+  }
+
+  .entry-desc {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 600px) {
+    .project-header-top {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .project-links {
+      align-items: flex-start;
+    }
+
+    .project-page h1 {
+      font-size: 32px;
+    }
+  }
+</style>

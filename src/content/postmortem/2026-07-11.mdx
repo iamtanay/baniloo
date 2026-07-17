@@ -1,0 +1,66 @@
+---
+title: "The only coupling point is one event shape"
+date: 2026-07-11
+description: "Building an ops tool that isn't a SaaS — one normalized event contract, a bring-your-own-brain backend, and a demo that runs in 60 seconds with zero tokens."
+---
+
+Every observability product I've used wants three things from me before it
+does anything useful: an account, an SDK in my codebase, and my data
+streamed to their cloud. postmortem is a bet that none of that is
+necessary. It runs entirely on your machine, watches the systems you
+already have, and when something breaks it explains why — using whatever
+AI you already pay for. This session was about getting the skeleton to hold
+weight.
+
+## One event, many sources
+
+The single most important decision is that sensors and outputs never know
+about each other. A sensor — git, a log file, the Vercel poller, a health
+check — does exactly one job: turn whatever it sees into a `NormalizedEvent`
+and `publish()` it to a typed bus. Everything downstream subscribes. The
+brain doesn't know a deploy came from Vercel rather than GitHub Actions; the
+dashboard doesn't know an error came from a log tail rather than a webhook.
+
+`src/core/event.ts` is the only coupling point in the system, and the rule
+is that nothing bypasses it. That constraint feels pedantic on day one,
+when there's one sensor. It pays for itself the moment you add the second,
+and again when actuators arrive later and can subscribe to the same bus
+with zero changes to anything that already exists. The harness is the
+product; the seams are where it earns that claim.
+
+## Bring your own brain
+
+postmortem is model-agnostic on purpose. The brain layer auto-detects a
+backend in a fixed order — the `claude` CLI first, then an Anthropic key,
+then OpenAI, then a local Ollama — and exposes exactly one method:
+`ask(prompt)`. Nothing else in the codebase knows which model answered.
+
+Putting the Claude Code CLI first is the wedge. If you already have a
+subscription, postmortem's intelligence is free and needs no API key at
+all. If you'd rather stay fully offline, point it at Ollama and no bytes
+leave the box. Either way the product promise holds: your data goes only to
+the AI *you* chose, and there is no telemetry, ever.
+
+The one thing I refuse to trust is the model's output. Every LLM response
+is Zod-validated on the way in, with a single retry and a graceful fallback
+that records the incident with raw analysis text rather than crashing. An
+ops tool that dies because a model returned slightly malformed JSON is
+worse than no tool.
+
+## The 60-second problem
+
+A local-first tool has a brutal cold start: a stranger installs it, and
+there are no incidents yet, so there's nothing to show. `mort watch --demo`
+solves it by replaying a canned incident through the *real* pipeline — same
+bus, same brain path, same terminal UI and dashboard at `127.0.0.1:6660` —
+with no tokens and no config. You see the yellow ☠ incident card in under a
+minute, and it's not a mockup. `predict` has the same cold-start courtesy:
+it works on day one, before you've had a single outage, by risk-scoring a
+diff against an empty history and saying so honestly.
+
+Ten sessions in, the loop runs end to end and the alpha is on npm.
+
+---
+
+Next: prove the full watch → detect → explain → predict loop end to end,
+fix what the audit finds, and cut a real 1.0.

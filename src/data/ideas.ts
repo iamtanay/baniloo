@@ -1,4 +1,5 @@
 export type IdeaStatus = 'active' | 'shipped' | 'thinking' | 'dormant';
+export type IdeaOrg = 'labs' | 'solo';
 
 export interface Idea {
   title: string;
@@ -6,9 +7,19 @@ export interface Idea {
   href: string;
   status: IdeaStatus;
   date: string;
+  org: IdeaOrg;
 }
 
 const ideasData: Idea[] = [
+  {
+    title: 'Postmortem',
+    description:
+      'AI-powered ops intelligence that lives in your terminal. It watches your deploys, git, and logs — and when something breaks, it correlates the events and tells you why, using whatever AI you already have. Local-first, no SaaS.',
+    href: '/postmortem',
+    status: 'active',
+    date: '2026-06-24',
+    org: 'labs',
+  },
   {
     title: 'LooMed',
     description:
@@ -16,6 +27,7 @@ const ideasData: Idea[] = [
     href: '/loomed',
     status: 'active',
     date: '2026-02-28',
+    org: 'labs',
   },
   {
     title: 'PulseSyn',
@@ -24,6 +36,7 @@ const ideasData: Idea[] = [
     href: '/pulsesyn',
     status: 'active',
     date: '2026-03-16',
+    org: 'labs',
   },
   {
     title: 'FedAcuity',
@@ -32,6 +45,7 @@ const ideasData: Idea[] = [
     href: '/fedacuity',
     status: 'shipped',
     date: '2026-04-18',
+    org: 'solo',
   },
   {
     title: 'Chakra',
@@ -40,6 +54,7 @@ const ideasData: Idea[] = [
     href: '/chakra',
     status: 'active',
     date: '2026-03-26',
+    org: 'solo',
   },
   {
     title: 'Vigor',
@@ -48,6 +63,7 @@ const ideasData: Idea[] = [
     href: '/vigor',
     status: 'active',
     date: '2026-04-17',
+    org: 'solo',
   },
   {
     title: 'theChant',
@@ -56,6 +72,7 @@ const ideasData: Idea[] = [
     href: '/thechant',
     status: 'active',
     date: '2026-05-21',
+    org: 'solo',
   },
   {
     title: 'Untitled Protocol',
@@ -64,13 +81,38 @@ const ideasData: Idea[] = [
     href: '#',
     status: 'thinking',
     date: '2026-03-09',
+    org: 'solo',
   },
 ];
 
 const STATUS_ORDER: Record<IdeaStatus, number> = { active: 0, shipped: 1, thinking: 2, dormant: 3 };
 
-export const ideas: Idea[] = ideasData.sort((a, b) => {
+const byStatusThenDate = (a: Idea, b: Idea): number => {
   const statusDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
   if (statusDiff !== 0) return statusDiff;
   return new Date(b.date).valueOf() - new Date(a.date).valueOf();
-});
+};
+
+export const ideas: Idea[] = [...ideasData].sort(byStatusThenDate);
+
+export interface IdeaGroup {
+  key: IdeaOrg;
+  label: string;
+  tagline: string;
+  ideas: Idea[];
+}
+
+export const ideaGroups: IdeaGroup[] = [
+  {
+    key: 'labs',
+    label: 'Baniloo Labs',
+    tagline: 'Open protocols and tools shipped under the Baniloo Labs org.',
+    ideas: ideasData.filter((i) => i.org === 'labs').sort(byStatusThenDate),
+  },
+  {
+    key: 'solo',
+    label: 'Solo Projects',
+    tagline: 'Research, apps, and experiments I build under my own name.',
+    ideas: ideasData.filter((i) => i.org === 'solo').sort(byStatusThenDate),
+  },
+];

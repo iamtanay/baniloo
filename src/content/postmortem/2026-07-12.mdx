@@ -1,0 +1,60 @@
+---
+title: "Shipping 1.0, then the memory an agent can read"
+date: 2026-07-12
+description: "The full loop, proven — then a Windows spawn bug, and a read-only MCP server that turns postmortem's incident history into memory a coding agent can query."
+---
+
+Two releases in one day. The morning was the road to 1.0 — proving the
+whole loop end to end and fixing what a pre-release audit turned up. The
+afternoon was v1.1, which added the feature I think matters most
+strategically: a way for coding agents to read postmortem's memory. In
+between was a Windows bug that had no business being as annoying as it was.
+
+## The loop, proven — then a shim that wouldn't spawn
+
+1.0 is the smallest thing that delivers the promise: watch → detect →
+explain → predict, proven end to end rather than demoed in pieces. I cut it,
+tagged it, and immediately had to ship 1.0.1.
+
+The bug was pure Windows. postmortem's default brain shells out to the
+`claude` CLI, which on Windows isn't an executable — it's an npm/nvm shim
+(`claude.cmd`). Node's `spawn` can't resolve or exec a `.cmd` directly; it
+just `ENOENT`s, so the marquee "free AI via your subscription" path silently
+failed on the platform I actually develop on. The fix is to spawn with
+`shell: true` and pass a single validated command string (not an args
+array, which trips a deprecation warning). It's now a documented rule:
+anything that shells out to a PATH command has to do the same. The tool that
+explains other people's incidents having a silent one of its own on launch
+day was a fittingly humbling way to start.
+
+## Incident memory as an MCP server
+
+The headline of v1.1 is `mort mcp`: a read-only [Model Context
+Protocol](https://modelcontextprotocol.io) server over the SQLite incident
+history. Point Claude Code or Cursor at the command `mort mcp` and the agent
+can call `list_incidents`, `get_incident`, `query_events`, and `predict` —
+risk-scoring the diff it's about to write against every outage you've ever
+had.
+
+This is the real thesis of the project, stated as a protocol. postmortem
+isn't just a watcher; it's the local ops-memory layer that agents plug into.
+The agent writing your code should be able to ask "have we broken this file
+before?" and get an answer grounded in your actual history. Read-only is a
+hard boundary — no database writes, no actuator triggers over MCP. Agents
+read the memory; they don't pull the levers. That line is what makes it safe
+to hand an autonomous tool a connection to your incident record.
+
+## The contract pays off
+
+Everything else in v1.1 was the `NormalizedEvent` bet cashing in. The
+Netlify sensor was built with the Vercel poller as a literal template — a
+new source of truth, zero changes to the brain, the database, or any output,
+because none of them care where an event was born. Auto-start units landed
+for launchd, systemd, and Windows Task Scheduler, all invoking the headless
+daemon. And Telegram alerts went out through a BotFather bot, the first
+output that leaves your terminal — formatted incident, ☠ and all.
+
+Released as 1.1.0. The roadmap from here is v2: actuators that don't just
+tell you what broke but can act — rollbacks, GitHub issues, PagerDuty — plus
+community sensors. The community builds sensors and actuators; the harness
+stays the product.
