@@ -4,6 +4,6 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 
 export default defineConfig({
-  site: 'https://baniloo.vercel.app',
+  site: 'https://baniloo.com',
   integrations: [mdx(), sitemap()],
 });

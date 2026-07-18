@@ -1,11 +1,23 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { personLd, breadcrumbLd, abs } from '../data/site.js';
+
+const profileLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfilePage',
+  mainEntity: personLd(),
+  url: abs('/about'),
+};
 ---
 
 <Layout
-  title="About"
-  description="Tanay Kashyap — thinking about why systems are designed the way they are, and what a more deliberate version might look like."
-  currentPath="/about">
+  title="Tanay Kashyap"
+  description="Tanay Kashyap — an AI-enabled software engineer with a Master's in AI & ML, building protocols, apps, and research in public."
+  currentPath="/about"
+  jsonLd={[
+    profileLd,
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'About', path: '/about' }]),
+  ]}>
   <section class="about-page">
     <h1 data-reveal>About Baniloo</h1>
 
@@ -30,6 +42,19 @@ import Layout from '../layouts/Layout.astro';
         If something here starts a conversation worth having, I'm reachable at <a href="mailto:tanaykashyap.dev@gmail.com">tanaykashyap.dev@gmail.com</a>.
       </p>
     </div>
+
+    <div class="about-bip" data-reveal style="--reveal-delay: 120ms">
+      <h2>Building in public</h2>
+      <p>
+        Everything here is built in the open. After a dev session I write up what
+        actually happened — the decisions, the dead ends, the things that broke —
+        as a journal entry on that project. It's a running record of the work, not a
+        polished changelog. You can read every stream on the <a href="/ideas">ideas page</a>,
+        follow the source under <a href="https://github.com/Baniloo-Labs" target="_blank" rel="noopener noreferrer">Baniloo&nbsp;Labs</a>
+        and <a href="https://github.com/iamtanay" target="_blank" rel="noopener noreferrer">my GitHub</a>,
+        or subscribe via <a href="/rss.xml">RSS</a>.
+      </p>
+    </div>
   </section>
 </Layout>
 
@@ -46,6 +71,38 @@ import Layout from '../layouts/Layout.astro';
 
   .about-content {
     max-width: 720px;
+  }
+
+  .about-bip {
+    max-width: 720px;
+    margin-top: 56px;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+
+  .about-bip h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .about-bip p {
+    font-size: 17px;
+    line-height: 1.8;
+    color: var(--text-2);
+  }
+
+  .about-bip a {
+    color: var(--accent);
+    text-decoration: none;
+    transition: opacity 150ms ease;
+  }
+
+  .about-bip a:hover {
+    opacity: 0.8;
   }
 
   .about-content p {

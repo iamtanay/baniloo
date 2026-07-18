@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('pulsesyn');
@@ -11,7 +12,11 @@ const thinkingEntries = allEntries
 <Layout
   title="PulseSyn"
   description="An open protocol for validating claims. A reputation-weighted validator network produces permanent, tamper-proof verdicts on falsifiable assertions — without storing content or owning the truth."
-  currentPath="/pulsesyn">
+  currentPath="/pulsesyn"
+  jsonLd={[
+    projectLd('pulsesyn', '/pulsesyn'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'PulseSyn', path: '/pulsesyn' }]),
+  ]}>
   <section class="pulsesyn-page">
     <div class="pulsesyn-header">
       <div class="pulsesyn-header-top">

@@ -9,6 +9,41 @@ can start now; everything else keys off the domain switch.
 
 ---
 
+## ✅ Implementation status (updated 2026-07-18)
+
+All **code-side** work in this plan is now implemented and committed:
+
+- `astro.config.mjs` `site` → `https://baniloo.com` (audit A).
+- **Canonical bug fixed** (audit B): every journal entry + spec page now emits its own
+  self-referential canonical + per-page OG image.
+- **OG images** (audit C): `public/og-default.png` + one generated card per route in
+  `public/og/…`. Regenerate with `npm run gen:og` after adding entries (`scripts/gen-og.mjs`).
+- **JSON-LD** (audit D): site-wide Person + WebSite (via `src/data/site.js`), BlogPosting +
+  BreadcrumbList on entries, SoftwareApplication/TechArticle/ScholarlyArticle + Breadcrumb on
+  project pages, ProfilePage on About. Layout accepts a `jsonLd` prop.
+- **RSS** (audit E): `/rss.xml` aggregating all journal entries, linked in `<head>` + footer.
+- **Image weight** (audit F/G): `fedacuity-architecture.png` 1.4 MB → 425 KB; explicit
+  `width`/`height` added.
+- Author meta, `<title>` on About set to "Tanay Kashyap", "Building in public" pillar section
+  on About, personal GitHub in footer.
+- **IndexNow key** generated: `public/919ca2865e6191d0500956ed859c7cd9.txt`.
+
+### Remaining — external actions only you can do (after Vercel points at baniloo.com)
+
+1. In Vercel: set `baniloo.com` as the **primary** domain (auto-301s the vercel.app URL).
+2. **Google Search Console**: add the `baniloo.com` domain property, verify by DNS TXT, submit
+   `https://baniloo.com/sitemap-index.xml`. Use "Change of Address" from the old property.
+3. **Bing Webmaster Tools**: add + verify + submit sitemap (import from GSC is fine).
+4. **Ping IndexNow** on new deploys, e.g.:
+   `curl "https://api.indexnow.org/indexnow?url=https://baniloo.com/&key=919ca2865e6191d0500956ed859c7cd9"`
+5. **Analytics** (optional, privacy-friendly): add Plausible/Umami — paste one script tag in
+   `Layout.astro` once you create the account.
+6. **Off-page identity**: set website = baniloo.com on your GitHub profile + Baniloo Labs org +
+   each repo About; add baniloo.com to LinkedIn/X; cross-post select entries to dev.to with a
+   canonical back to the original. Add those profile URLs to `SAME_AS` in `src/data/site.js`.
+
+---
+
 ## 0. Current state — audit findings
 
 What already exists (good foundation):

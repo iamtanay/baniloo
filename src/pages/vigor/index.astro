@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('vigor');
@@ -9,7 +10,11 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 <Layout
   title="Vigor"
   description="A pay-per-use gym and fitness venue app. Walk in, scan a QR, train, scan out. No memberships required."
-  currentPath="/vigor">
+  currentPath="/vigor"
+  jsonLd={[
+    projectLd('vigor', '/vigor'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'Vigor', path: '/vigor' }]),
+  ]}>
   <section class="project-page">
     <div class="project-header">
       <div class="project-header-top">

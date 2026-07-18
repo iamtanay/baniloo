@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('fedacuity');
@@ -9,7 +10,11 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 <Layout
   title="FedAcuity"
   description="Master's dissertation in AI & ML — federated learning for Long-Term Care facilities, predicting skilled nursing needs without sharing patient data."
-  currentPath="/fedacuity">
+  currentPath="/fedacuity"
+  jsonLd={[
+    projectLd('fedacuity', '/fedacuity'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'FedAcuity', path: '/fedacuity' }]),
+  ]}>
   <section class="project-page">
     <div class="project-header">
       <div class="project-header-top">
@@ -37,6 +42,8 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
         <img
           src="/fedacuity-architecture.png"
           alt="FedAcuity system architecture: facility edge clients training local XGBoost models, a care-type-aware aggregation server, and the XAI audit layer."
+          width="1536"
+          height="1024"
           loading="lazy"
         />
         <figcaption>System architecture — facility-edge training, care-type-aware aggregation, and the XAI audit layer.</figcaption>

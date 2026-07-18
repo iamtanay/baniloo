@@ -1,17 +1,24 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getEntry } from 'astro:content';
+import { breadcrumbLd, projectLd } from '../../data/site.js';
 
 const entry = await getEntry('pulsesyn', 'spec');
 if (!entry) throw new Error('PulseSyn spec not found');
 
 const { Content } = await entry.render();
+const specDescription = "Protocol specification v0.1 for PulseSyn — a decentralized, content-agnostic protocol for validating claims using reputation-weighted consensus.";
 ---
 
 <Layout
   title="PulseSyn Specification"
-  description="Protocol specification v0.1 for PulseSyn — a decentralized, content-agnostic protocol for validating claims using reputation-weighted consensus."
-  currentPath="/pulsesyn">
+  description={specDescription}
+  currentPath="/pulsesyn/spec"
+  ogType="article"
+  jsonLd={[
+    projectLd('pulsesyn', '/pulsesyn/spec', specDescription),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'PulseSyn', path: '/pulsesyn' }, { name: 'Specification', path: '/pulsesyn/spec' }]),
+  ]}>
   <article class="spec-page">
     <nav class="breadcrumb">
       <a href="/pulsesyn">← Back to PulseSyn</a>

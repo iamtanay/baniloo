@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('chakra');
@@ -9,7 +10,11 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 <Layout
   title="Chakra"
   description="A personal life management and task tracker — kanban, calendar, Today view with momentum and drift tracking, recurring tasks, multiuser Spaces, and Streams."
-  currentPath="/chakra">
+  currentPath="/chakra"
+  jsonLd={[
+    projectLd('chakra', '/chakra'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'Chakra', path: '/chakra' }]),
+  ]}>
   <section class="project-page">
     <div class="project-header">
       <div class="project-header-top">

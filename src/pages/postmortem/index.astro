@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('postmortem');
@@ -9,7 +10,11 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 <Layout
   title="Postmortem"
   description="postmortem — AI-powered, local-first ops intelligence that lives in your terminal. It watches your deploys, git, and logs, and explains why things break using whatever AI you already have."
-  currentPath="/postmortem">
+  currentPath="/postmortem"
+  jsonLd={[
+    projectLd('postmortem', '/postmortem'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'Postmortem', path: '/postmortem' }]),
+  ]}>
   <section class="project-page">
     <div class="project-header">
       <div class="project-header-top">

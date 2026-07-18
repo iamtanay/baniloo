@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('thechant');
@@ -9,7 +10,11 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 <Layout
   title="theChant"
   description="Real-time fan reactions for FIFA World Cup 2026 — a world map that shows where everyone is feeling it as the match unfolds."
-  currentPath="/thechant">
+  currentPath="/thechant"
+  jsonLd={[
+    projectLd('thechant', '/thechant'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'theChant', path: '/thechant' }]),
+  ]}>
   <section class="project-page">
     <div class="project-header">
       <div class="project-header-top">

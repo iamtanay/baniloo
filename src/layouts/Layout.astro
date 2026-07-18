@@ -2,25 +2,42 @@
 import { ViewTransitions } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+import {
+  SITE_URL,
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  AUTHOR,
+  ogImagePath,
+  personLd,
+  websiteLd,
+} from '../data/site.js';
 
 interface Props {
   title?: string;
   description?: string;
   currentPath?: string;
   ogImage?: string;
+  ogType?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
 const {
   title = 'Baniloo',
-  description = 'Ideas about distributed control, democratic infrastructure, and technology that doesn\'t ask for your trust.',
+  description = SITE_DESCRIPTION,
   currentPath = '/',
-  ogImage = '/og-default.png',
+  ogImage,
+  ogType = 'website',
+  jsonLd,
 } = Astro.props;
 
-const siteUrl = 'https://baniloo.com';
+const siteUrl = SITE_URL;
 const canonicalUrl = new URL(currentPath, siteUrl).href;
-const ogImageUrl = new URL(ogImage, siteUrl).href;
+const ogImageUrl = new URL(ogImage ?? ogImagePath(currentPath), siteUrl).href;
 const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
+
+// Site-wide entity graph + any page-specific schema.
+const pageSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+const schemas = [personLd(), websiteLd(), ...pageSchemas];
 ---
 
 <!doctype html>
@@ -38,10 +55,17 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
     <!-- Primary -->
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    <meta name="author" content={AUTHOR.name} />
     <link rel="canonical" href={canonicalUrl} />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${SITE_NAME} — journal`}
+      href="/rss.xml"
+    />
 
     <!-- Open Graph -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
@@ -64,6 +88,11 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
     />
 
     <ViewTransitions />
+
+    <!-- Structured data -->
+    {schemas.map((schema) => (
+      <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+    ))}
   </head>
   <body>
     <div class="bg-aurora" aria-hidden="true"></div>

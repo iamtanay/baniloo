@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
+import { blogPostingLd, breadcrumbLd } from '../../data/site.js';
 
 export async function getStaticPaths() {
   const entries = await getCollection('pulsesyn');
@@ -19,7 +20,12 @@ const { Content } = await entry.render();
 <Layout
   title={`${entry.data.title} — PulseSyn`}
   description={entry.data.description ?? `A thinking note on PulseSyn — the open protocol for validating claims.`}
-  currentPath="/pulsesyn">
+  currentPath={`/pulsesyn/${entry.slug}`}
+  ogType="article"
+  jsonLd={[
+    blogPostingLd({ title: entry.data.title, description: entry.data.description ?? 'A thinking note on PulseSyn — the open protocol for validating claims.', date: entry.data.date, path: `/pulsesyn/${entry.slug}`, section: 'PulseSyn' }),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'PulseSyn', path: '/pulsesyn' }, { name: entry.data.title, path: `/pulsesyn/${entry.slug}` }]),
+  ]}>
   <article class="thinking-entry">
     <div class="entry-header">
       <a href="/pulsesyn" class="back-link">← PulseSyn</a>

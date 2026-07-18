@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { projectLd, breadcrumbLd } from '../../data/site.js';
 import { getCollection } from 'astro:content';
 
 const allEntries = await getCollection('loomed');
@@ -11,7 +12,11 @@ const thinkingEntries = allEntries
 <Layout
   title="LooMed"
   description="An open protocol for patient-controlled medical records — portable, interoperable, and built without requiring hospitals to cooperate first."
-  currentPath="/loomed">
+  currentPath="/loomed"
+  jsonLd={[
+    projectLd('loomed', '/loomed'),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'LooMed', path: '/loomed' }]),
+  ]}>
   <section class="loomed-page">
     <div class="loomed-header">
       <div class="loomed-header-top">

@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
+import { blogPostingLd, breadcrumbLd } from '../../data/site.js';
 
 export async function getStaticPaths() {
   const entries = await getCollection('thechant');
@@ -23,7 +24,12 @@ const formattedDate = entry.data.date.toLocaleDateString('en-US', {
 <Layout
   title={`${entry.data.title} — theChant`}
   description={entry.data.description ?? `A note on theChant — real-time fan reactions for FIFA World Cup 2026.`}
-  currentPath="/thechant">
+  currentPath={`/thechant/${entry.slug}`}
+  ogType="article"
+  jsonLd={[
+    blogPostingLd({ title: entry.data.title, description: entry.data.description ?? 'A note on theChant — real-time fan reactions for FIFA World Cup 2026.', date: entry.data.date, path: `/thechant/${entry.slug}`, section: 'theChant' }),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'theChant', path: '/thechant' }, { name: entry.data.title, path: `/thechant/${entry.slug}` }]),
+  ]}>
   <article class="thinking-page">
     <nav class="breadcrumb">
       <a href="/thechant">← Back to theChant</a>

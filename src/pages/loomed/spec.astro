@@ -1,17 +1,24 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getEntry } from 'astro:content';
+import { breadcrumbLd, projectLd } from '../../data/site.js';
 
 const entry = await getEntry('loomed', 'spec');
 if (!entry) throw new Error('Spec not found');
 
 const { Content } = await entry.render();
+const specDescription = "Protocol specification v0.2 for LooMed — the open protocol for patient-controlled medical records using cryptographic ownership and offline-first sync.";
 ---
 
 <Layout
   title="LooMed Specification"
-  description="Protocol specification v0.2 for LooMed — the open protocol for patient-controlled medical records using cryptographic ownership and offline-first sync."
-  currentPath="/loomed">
+  description={specDescription}
+  currentPath="/loomed/spec"
+  ogType="article"
+  jsonLd={[
+    projectLd('loomed', '/loomed/spec', specDescription),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'LooMed', path: '/loomed' }, { name: 'Specification', path: '/loomed/spec' }]),
+  ]}>
   <article class="spec-page">
     <nav class="breadcrumb">
       <a href="/loomed">← Back to LooMed</a>
