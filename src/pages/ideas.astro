@@ -9,14 +9,16 @@ import { ideaGroups } from '../data/ideas';
   description="All active and in-progress ideas by Tanay Kashyap — protocols and tools under Baniloo Labs, plus solo research and apps, built from first principles."
   currentPath="/ideas">
   <section class="ideas-page">
-    <h1>Ideas</h1>
-    <p class="page-intro">
+    <h1 data-reveal>Ideas</h1>
+    <p class="page-intro" data-reveal style="--reveal-delay: 60ms">
       Tools and protocols under Baniloo Labs, and a handful I build on my own — from open protocols and research to apps and things shipping this month. All documented as they get built.
     </p>
 
     <div class="ideas-groups">
-      {ideaGroups.map((group) => (
-        <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
+      {ideaGroups.map((group, i) => (
+        <div data-reveal style={`--reveal-delay: ${120 + i * 80}ms`}>
+          <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
+        </div>
       ))}
     </div>
   </section>

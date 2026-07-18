@@ -13,9 +13,15 @@ const isThinking = status === 'thinking';
 
 <a href={isThinking ? '#' : href} class={`idea-card ${isThinking ? 'thinking-disabled' : ''}`} data-thinking-message={isThinking ? "This idea is in early thinking stage — not yet ready to share details" : undefined}>
   <div class="idea-card-top">
-    <span class="idea-card-title">{title}</span>
+    <span class="idea-card-title">
+      {title}
+      <svg class="idea-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M4 8h8M8.5 4.5 12 8l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
     <div class="idea-card-meta">
       <span class={`status-badge ${status}`}>
+        <span class="status-dot"></span>
         {status}
       </span>
       <span class="idea-date">{date}</span>
@@ -26,26 +32,56 @@ const isThinking = status === 'thinking';
 
 <style>
   .idea-card {
-    background: var(--surface);
+    position: relative;
+    background: var(--surface-1);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 20px 24px;
     text-decoration: none;
     display: block;
-    transition: border-color 150ms ease;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 200ms ease, box-shadow 260ms ease;
   }
 
-  .idea-card:hover {
-    border-color: var(--accent);
+  /* Gradient accent line that grows down the left edge on hover */
+  .idea-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-2));
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .idea-card:not(.thinking-disabled):hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .idea-card:not(.thinking-disabled):hover::before {
+    transform: scaleY(1);
   }
 
   .idea-card:hover .idea-card-title {
     color: var(--accent);
   }
 
+  .idea-card:not(.thinking-disabled):hover .idea-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
   .idea-card.thinking-disabled {
     cursor: not-allowed;
-    position: relative;
   }
 
   .idea-card.thinking-disabled:hover {
@@ -84,10 +120,14 @@ const isThinking = status === 'thinking';
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
     margin-bottom: 6px;
   }
 
   .idea-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 17px;
     font-weight: 600;
@@ -95,27 +135,61 @@ const isThinking = status === 'thinking';
     transition: color 150ms ease;
   }
 
+  .idea-arrow {
+    width: 15px;
+    height: 15px;
+    opacity: 0;
+    transform: translateX(-5px);
+    transition: opacity 200ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
   .idea-card-meta {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
   }
 
   .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    padding: 3px 8px;
-    border-radius: 4px;
+    padding: 3px 9px;
+    border-radius: 999px;
     border: 1px solid var(--border);
     color: var(--text-2);
+  }
+
+  .status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: currentColor;
   }
 
   .status-badge.active {
     color: #4CAF82;
     border-color: rgba(76, 175, 130, 0.3);
     background: rgba(76, 175, 130, 0.07);
+  }
+
+  .status-badge.active .status-dot {
+    box-shadow: 0 0 0 0 rgba(76, 175, 130, 0.5);
+    animation: dotPulse 2.4s ease-out infinite;
+  }
+
+  @keyframes dotPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(76, 175, 130, 0.5); }
+    70%  { box-shadow: 0 0 0 5px rgba(76, 175, 130, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(76, 175, 130, 0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .status-badge.active .status-dot { animation: none; }
   }
 
   .status-badge.shipped {

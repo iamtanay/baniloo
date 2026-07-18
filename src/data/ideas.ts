@@ -41,7 +41,7 @@ const ideasData: Idea[] = [
   {
     title: 'FedAcuity',
     description:
-      'M.TECH dissertation. Federated learning for Long-Term Care facilities — predicting skilled nursing needs without ever moving patient data off-premises.',
+      'Master\'s dissertation in AI & ML. Federated learning for Long-Term Care facilities — predicting skilled nursing needs without ever moving patient data off-premises.',
     href: '/fedacuity',
     status: 'shipped',
     date: '2026-04-18',

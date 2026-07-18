@@ -1,7 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import IdeaGroup from '../components/IdeaGroup.astro';
-import { ideaGroups } from '../data/ideas';
+import { ideaGroups, ideas } from '../data/ideas';
+
+const projectCount = ideas.filter((i) => i.status !== 'thinking').length;
+const labsCount = ideaGroups.find((g) => g.key === 'labs')?.ideas.length ?? 0;
+const activeCount = ideas.filter((i) => i.status === 'active').length;
+const stats = [
+  { value: projectCount, label: 'Projects' },
+  { value: labsCount, label: 'Baniloo Labs' },
+  { value: activeCount, label: 'In progress' },
+];
 ---
 
 <Layout
@@ -9,33 +18,49 @@ import { ideaGroups } from '../data/ideas';
   description="Ideas about protocols, systems, and infrastructure — by Tanay Kashyap. Thinking through why things are built the way they are, and what a more deliberate version might look like."
   currentPath="/">
   <section class="hero">
-    <p class="section-label">Baniloo</p>
-    <h1>Building things — some serious, some just fun.</h1>
-    <p class="hero-epigraph">
+    <span class="live-badge" data-reveal>
+      <span class="pulse"></span>
+      Building in public
+    </span>
+    <h1 data-reveal style="--reveal-delay: 60ms">
+      Building things — <span class="grad-text">some serious, some just fun.</span>
+    </h1>
+    <p class="hero-epigraph" data-reveal style="--reveal-delay: 120ms">
       A mix of protocols, apps, research, and whatever felt worth making.
     </p>
-    <div class="hero-body">
+    <div class="hero-body" data-reveal style="--reveal-delay: 180ms">
       <p>
-        I'm Tanay Kashyap, doing an M.TECH at BITS Pilani and building things on the side. Some ship under <strong>Baniloo Labs</strong> — a small org I started for the open protocols and tools: a medical records protocol, a claim validation network, and postmortem, an AI ops watcher that lives in your terminal. The rest I build solo, under my own name — a federated-learning dissertation, a task tracker I actually use, a gym app, a World Cup fan experience. The range is real.
+        I'm Tanay Kashyap. By day I'm an <strong>AI-enabled software engineer</strong>; alongside that I'm finishing a <strong>Master's in AI &amp; ML</strong> — and the rest of the time goes into the things below. Some ship under <strong>Baniloo Labs</strong> — a small org I started for the open protocols and tools: a medical records protocol, a claim validation network, and Postmortem, an AI ops watcher that lives in your terminal. The rest I build solo, under my own name — a federated-learning dissertation, a task tracker I actually use, a gym app, a World Cup fan experience. The range is real.
       </p>
       <p>
         Some of these are designed from first principles. Some started because the problem annoyed me. Either way, they're documented here as they get built — split below into Baniloo Labs and the solo work.
       </p>
     </div>
-    <p class="hero-byline">— Tanay Kashyap</p>
+
+    <div class="hero-stats" data-reveal style="--reveal-delay: 240ms">
+      {stats.map((s) => (
+        <div class="stat">
+          <span class="stat-value">{s.value}</span>
+          <span class="stat-label">{s.label}</span>
+        </div>
+      ))}
+      <p class="hero-byline">— Tanay Kashyap</p>
+    </div>
   </section>
 
   <div class="divider"></div>
 
   <section>
-    <div class="ideas-header">
+    <div class="ideas-header" data-reveal>
       <h2>Ideas</h2>
       <a href="/ideas">All ideas →</a>
     </div>
 
     <div class="ideas-groups">
-      {ideaGroups.map((group) => (
-        <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
+      {ideaGroups.map((group, i) => (
+        <div data-reveal style={`--reveal-delay: ${i * 80}ms`}>
+          <IdeaGroup label={group.label} tagline={group.tagline} ideas={group.ideas} />
+        </div>
       ))}
     </div>
   </section>
@@ -46,28 +71,62 @@ import { ideaGroups } from '../data/ideas';
     margin-bottom: 64px;
   }
 
-  .section-label {
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.12em;
     color: var(--accent);
-    margin-bottom: 24px;
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 26px;
+  }
+
+  .pulse {
+    position: relative;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .pulse::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulseRing 2s ease-out infinite;
+  }
+
+  @keyframes pulseRing {
+    0%   { transform: scale(1); opacity: 0.7; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pulse::before { animation: none; }
   }
 
   .hero h1 {
     font-family: 'Fraunces', serif;
-    font-size: 44px;
+    font-size: 46px;
     font-weight: 600;
-    line-height: 1.1;
+    line-height: 1.08;
     letter-spacing: -0.02em;
     color: var(--text);
     margin-bottom: 20px;
+    max-width: 22ch;
   }
 
   .hero-epigraph {
     font-family: 'Fraunces', serif;
-    font-size: 17px;
+    font-size: 18px;
     font-style: italic;
     color: var(--text-2);
     line-height: 1.7;
@@ -80,21 +139,58 @@ import { ideaGroups } from '../data/ideas';
     color: var(--text);
   }
 
+  .hero-body strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
   .hero-body p + p {
     margin-top: 1.6em;
+  }
+
+  .hero-stats {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px 32px;
+    margin-top: 36px;
+    padding-top: 26px;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+  }
+
+  .stat-value {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-2);
+    margin-top: 4px;
   }
 
   .hero-byline {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     color: var(--text-2);
-    margin-top: 28px;
+    margin-left: auto;
   }
 
   .divider {
     width: 100%;
     height: 1px;
-    background: var(--border);
+    background: linear-gradient(90deg, transparent, var(--border) 20%, var(--border) 80%, transparent);
     margin: 64px 0;
   }
 
@@ -127,7 +223,14 @@ import { ideaGroups } from '../data/ideas';
 
   @media (max-width: 600px) {
     .hero h1 {
-      font-size: 32px;
+      font-size: 33px;
+    }
+    .hero-stats {
+      gap: 14px 24px;
+    }
+    .hero-byline {
+      margin-left: 0;
+      flex-basis: 100%;
     }
   }
 </style>

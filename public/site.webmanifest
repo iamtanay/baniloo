@@ -1,0 +1,13 @@
+{
+  "name": "Baniloo",
+  "short_name": "Baniloo",
+  "description": "A public dev journal — protocols, apps, and research, built in the open by Tanay Kashyap.",
+  "icons": [
+    { "src": "/logo-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "theme_color": "#0F0F0D",
+  "background_color": "#0F0F0D",
+  "display": "standalone",
+  "start_url": "/"
+}

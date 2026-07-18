@@ -28,7 +28,11 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#0F0F0D" />
     <meta name="generator" content={Astro.generator} />
 
     <!-- Primary -->
@@ -62,6 +66,8 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
     <ViewTransitions />
   </head>
   <body>
+    <div class="bg-aurora" aria-hidden="true"></div>
+    <div class="bg-grain" aria-hidden="true"></div>
     <div class="page">
       <Header currentPath={currentPath} />
       <main>
@@ -69,30 +75,74 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
       </main>
       <Footer />
     </div>
+
+    <script is:inline>
+      // Scroll-reveal: fade/slide elements marked [data-reveal] into view.
+      function setupReveal() {
+        const els = document.querySelectorAll('[data-reveal]');
+        if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          els.forEach((el) => el.classList.add('is-revealed'));
+          return;
+        }
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+        els.forEach((el) => io.observe(el));
+      }
+      setupReveal();
+      document.addEventListener('astro:after-swap', setupReveal);
+    </script>
   </body>
 </html>
 
 <style is:global>
   :root {
-    --bg: #0F0F0D;
+    --bg: #0E0E0C;
     --surface: #1A1A17;
+    --surface-1: rgba(30, 30, 26, 0.55);
+    --surface-2: rgba(38, 38, 33, 0.6);
     --border: #2A2A25;
+    --border-strong: #3A3A32;
     --text: #EDEAE3;
-    --text-2: #7A7870;
-    --accent: #6B8AFF;
+    --text-2: #918E85;
+    --accent: #5B86FF;
+    --accent-2: #8EB2FF;
+    --accent-soft: rgba(91, 134, 255, 0.14);
+    --glow-a: rgba(70, 110, 255, 0.22);
+    --glow-b: rgba(120, 90, 255, 0.14);
     --code-bg: #1E1E1A;
     --code-text: #D4D0C8;
+    --header-bg: rgba(14, 14, 12, 0.72);
+    --card-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    --card-shadow-hover: 0 18px 40px -20px rgba(70, 110, 255, 0.55), 0 4px 12px rgba(0,0,0,0.35);
+    --grain-opacity: 0.05;
   }
 
   [data-theme="light"] {
     --bg: #FAFAF8;
     --surface: #F2F0EB;
-    --border: #E2DED6;
-    --text: #1C1C1A;
-    --text-2: #8A8680;
-    --accent: #3B5BDB;
+    --surface-1: rgba(255, 255, 255, 0.7);
+    --surface-2: rgba(255, 255, 255, 0.85);
+    --border: #E4E0D8;
+    --border-strong: #D2CDC2;
+    --text: #1B1B19;
+    --text-2: #78746C;
+    --accent: #2C5BE0;
+    --accent-2: #4C7DFF;
+    --accent-soft: rgba(44, 91, 224, 0.1);
+    --glow-a: rgba(70, 110, 255, 0.16);
+    --glow-b: rgba(140, 110, 255, 0.1);
     --code-bg: #EEEAE3;
     --code-text: #2D2D2A;
+    --header-bg: rgba(250, 250, 248, 0.72);
+    --card-shadow: 0 1px 2px rgba(20, 20, 20, 0.05);
+    --card-shadow-hover: 0 18px 40px -22px rgba(44, 91, 224, 0.4), 0 4px 12px rgba(30,30,30,0.08);
+    --grain-opacity: 0.03;
   }
 
   *,
@@ -106,26 +156,62 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
   html {
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
   }
 
   body {
+    position: relative;
     background: var(--bg);
     color: var(--text);
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 17px;
     line-height: 1.8;
-    transition: background 0.2s ease, color 0.2s ease;
+    min-height: 100vh;
+    transition: background 0.25s ease, color 0.25s ease;
+  }
+
+  /* Ambient aurora glow behind everything */
+  .bg-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    pointer-events: none;
+    background:
+      radial-gradient(60% 45% at 78% 8%, var(--glow-a), transparent 60%),
+      radial-gradient(50% 40% at 12% 4%, var(--glow-b), transparent 55%),
+      radial-gradient(70% 60% at 50% 120%, var(--glow-a), transparent 60%);
+    filter: saturate(1.05);
+    animation: auroraDrift 22s ease-in-out infinite alternate;
+  }
+
+  @keyframes auroraDrift {
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    100% { transform: translate3d(0, -2%, 0) scale(1.06); }
+  }
+
+  /* Fine film grain for texture */
+  .bg-grain {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-aurora { animation: none; }
+    html { scroll-behavior: auto; }
   }
 
   .page {
     opacity: 0;
-    animation: fadeIn 200ms ease forwards;
+    animation: fadeIn 260ms ease forwards;
   }
 
   @keyframes fadeIn {
-    to {
-      opacity: 1;
-    }
+    to { opacity: 1; }
   }
 
   main {
@@ -145,6 +231,34 @@ const fullTitle = title === 'Baniloo' ? 'Baniloo' : `${title} — Baniloo`;
 
   .accent {
     color: var(--accent);
+  }
+
+  /* Gradient text used for emphasis */
+  .grad-text {
+    background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+
+  /* Scroll reveal */
+  [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform;
+  }
+
+  [data-reveal].is-revealed {
+    opacity: 1;
+    transform: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal] { transition: none; transform: none; }
   }
 
   @media (max-width: 600px) {
