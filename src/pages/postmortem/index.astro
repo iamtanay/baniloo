@@ -46,6 +46,17 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
         <code>npm i -g @postmortem-cli/mort</code> and try the full loop in 60 seconds with
         <code>mort watch --demo</code>.
       </p>
+
+      <figure class="architecture-figure">
+        <img
+          src="/postmortem-architecture.png"
+          alt="Postmortem system architecture: sensors watching deploys, git, and logs feeding a normalized event contract, a bring-your-own-brain AI backend, and a live terminal and web dashboard."
+          width="1672"
+          height="941"
+          loading="lazy"
+        />
+        <figcaption>System architecture — sensors, a normalized event contract, and a bring-your-own-brain backend surfaced through the terminal and web dashboard.</figcaption>
+      </figure>
     </div>
 
     <div class="divider"></div>
@@ -174,6 +185,31 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
     color: var(--code-text);
     padding: 2px 6px;
     border-radius: 3px;
+  }
+
+  .architecture-figure {
+    margin: 8px 0 0;
+  }
+
+  .architecture-figure img {
+    display: block;
+    width: 100%;
+    max-width: 620px;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 12px;
+  }
+
+  .architecture-figure figcaption {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
   }
 
   .divider {

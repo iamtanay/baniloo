@@ -40,6 +40,17 @@ const thinkingEntries = allEntries
       <a href="/loomed/spec" class="spec-link">
         Read the technical specification →
       </a>
+
+      <figure class="architecture-figure">
+        <img
+          src="/loomed-architecture.png"
+          alt="LooMed protocol architecture: patient-owned cloud repository, identity-provider-abstracted key management, and git-style commit history secured by a hash chain."
+          width="1672"
+          height="941"
+          loading="lazy"
+        />
+        <figcaption>Protocol architecture — patient-owned repository, IdP-abstracted identity, and git-style commit history with hash-chain integrity.</figcaption>
+      </figure>
     </div>
 
     <div class="divider"></div>
@@ -157,6 +168,31 @@ const thinkingEntries = allEntries
 
   .spec-link:hover {
     color: var(--accent);
+  }
+
+  .architecture-figure {
+    margin: 24px 0 0;
+  }
+
+  .architecture-figure img {
+    display: block;
+    width: 100%;
+    max-width: 620px;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 12px;
+  }
+
+  .architecture-figure figcaption {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
   }
 
   .divider {

@@ -28,6 +28,7 @@ export const PROJECTS = {
     type: 'software',
     repo: 'https://github.com/Baniloo-Labs/postmortem',
     tagline: 'AI-powered ops intelligence that lives in your terminal.',
+    image: '/postmortem-architecture.png',
   },
   loomed: {
     name: 'LooMed',
@@ -35,6 +36,7 @@ export const PROJECTS = {
     type: 'protocol',
     repo: 'https://github.com/Baniloo-Labs/loomed',
     tagline: 'A protocol for patient-controlled medical records.',
+    image: '/loomed-architecture.png',
   },
   pulsesyn: {
     name: 'PulseSyn',
@@ -42,6 +44,7 @@ export const PROJECTS = {
     type: 'protocol',
     repo: 'https://github.com/Baniloo-Labs/pulsesyn',
     tagline: 'An open protocol for validating claims.',
+    image: '/pulsesyn-architecture.png',
   },
   fedacuity: {
     name: 'FedAcuity',
@@ -152,6 +155,7 @@ export function projectLd(key, path, description) {
     url: abs(path),
     author: { '@type': 'Person', name: AUTHOR.name, url: SITE_URL },
     ...(p.repo ? { codeRepository: p.repo, sameAs: [p.repo] } : {}),
+    ...(p.image ? { image: abs(p.image) } : {}),
   };
   if (p.type === 'software') {
     return {

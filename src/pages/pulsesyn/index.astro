@@ -43,6 +43,17 @@ const thinkingEntries = allEntries
       <a href="/pulsesyn/spec" class="spec-link">
         Read the protocol specification →
       </a>
+
+      <figure class="architecture-figure">
+        <img
+          src="/pulsesyn-architecture.png"
+          alt="PulseSyn protocol architecture: claim submission, a reputation-weighted validator network, commit-reveal Proof of Verification consensus, and permanent verdict finalization."
+          width="1672"
+          height="941"
+          loading="lazy"
+        />
+        <figcaption>Protocol architecture — claims, a reputation-weighted validator network, and commit-reveal consensus producing a permanent verdict.</figcaption>
+      </figure>
     </div>
 
     {thinkingEntries.length > 0 && (
@@ -164,6 +175,31 @@ const thinkingEntries = allEntries
 
   .spec-link:hover {
     color: var(--accent);
+  }
+
+  .architecture-figure {
+    margin: 24px 0 0;
+  }
+
+  .architecture-figure img {
+    display: block;
+    width: 100%;
+    max-width: 620px;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    padding: 12px;
+  }
+
+  .architecture-figure figcaption {
+    margin-top: 12px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
   }
 
   .divider {
