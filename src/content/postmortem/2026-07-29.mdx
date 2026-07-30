@@ -1,0 +1,60 @@
+---
+title: "The safety model lives in one place, not in five actuators"
+date: 2026-07-29
+description: "postmortem's v2.0 actuator framework enforces severity, dry-run, and confirmation gates once in the registry — then Telegram, webhook, and GitHub actuators plug into a seam that can't be config'd into firing something dangerous"
+---
+
+Session 16 turns `src/actuators/{base,index}.ts` from a scaffold into the
+real thing, with zero concrete actuators registered yet, on purpose — the
+framework had to be provably safe before anything used it. Session 17
+picks up the same day and registers the first three: Telegram, a generic
+webhook, and GitHub issues. All three ship disabled by default, so
+installing this version changes nothing on its own.
+
+## Where the safety model actually lives
+
+The tempting design is to make every actuator responsible for its own
+caution — check severity, respect dry-run, ask before acting. That's also
+the design where the fifth actuator someone writes forgets one of the
+three. `ActuatorRegistry.runAll()` enforces the whole chain once, before
+any actuator-specific code runs at all: severity gate first (below the
+configured floor, not even `describe()` runs), then dry-run (the registry
+logs what the action would be and writes an audit row, `execute()` is
+never called), then a confirmation gate, then — only then — an isolated,
+try/caught `execute()`.
+
+The confirmation gate is the part I didn't want to leave configurable.
+`requiresConfirmation` is a property declared on the actuator class
+itself, not a `[actuators.x]` config key. If it were a TOML flag, the
+highest-stakes actuator in the system could be armed by editing a text
+file. Making it a hardcoded class property means the only way a
+confirmation-gated actuator fires is a code change — which is exactly the
+amount of friction acting on production should require.
+
+## A gap the first real actuators exposed
+
+Sensors have always run their output through a central redactor before
+anything touches disk — `BaseSensor.emit()` guarantees it. The actuator
+registry's audit trail didn't, because in Session 16 there was nothing
+flowing through it worth redacting. The moment Session 17 registered
+actuators that carry live external data — API error bodies, the
+configured webhook URL, whatever a failed request echoes back — that gap
+became a real risk instead of a theoretical one. `audit()` now redacts
+`result.message` and `result.detail` the same way sensors do, so an
+actuator author never has to remember to do it themselves.
+
+## Built by reusing what already worked
+
+`WebhookActuator` signs its POST body the same HMAC-SHA256 scheme the
+inbound webhook receiver already verifies, and runs the user-supplied URL
+through the exact SSRF guard written for the health-check sensor —
+verified live by pointing it at a loopback address and watching the
+registry block it before any request left the process. `TelegramActuator`
+is the v1.1 alert plumbing, just called from a different place now.
+`GitHubActuator` opens an issue through the same `apiClient` convention
+the GitHub Actions sensor already used. None of it is new infrastructure;
+it's the same trust boundaries, reused instead of rebuilt.
+
+RollbackActuator and PagerDuty — the two actuators classified high-stakes
+enough to need the confirmation gate for real — are what Session 17
+finishes next.

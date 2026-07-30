@@ -1,0 +1,64 @@
+---
+title: "A rollback actuator that isn't allowed to roll anything back yet"
+date: 2026-07-30
+description: "Shipping RollbackActuator and PagerDutyActuator complete postmortem's v2.0 actuator set — real, tested execute() logic gated behind a confirmation path that deliberately doesn't exist"
+---
+
+Session 17 finishes with all five planned actuators shipped and none of
+the fallback cuts needed. RollbackActuator and PagerDutyActuator are both
+`requiresConfirmation = true` — the two highest-stakes actions in the
+system — which means both have real, tested, working `execute()` methods
+that the registry will never call on its own.
+
+## Real code behind a gate with no key yet
+
+That's not a contradiction, it's the honest state of the feature. A
+human-triggered confirm-and-run path — a CLI prompt, an approval step —
+doesn't exist in postmortem yet. Rather than fake it or leave
+`RollbackActuator` half-built until that path lands, Session 17 ships the
+actual logic: the real Vercel and Netlify API calls, tested against
+mocked responses, ready to fire the moment there's a legitimate way for a
+human to trigger them. Live-verified through the real daemon with
+`dry_run = false` and a fully-configured rollback target, the registry
+still only ever wrote `awaiting_confirmation` to the audit trail. The
+gate held under the condition most likely to defeat it — someone who
+actually turned dry-run off.
+
+## Guessing is worse than asking
+
+`RollbackActuator` targets an explicit, pre-configured deployment —
+`project_id` plus `target_deployment_id` for Vercel, `site_id` plus
+`target_deploy_id` for Netlify — instead of trying to infer "the last
+known-good deployment" from incident correlation. That inference is an
+unsolved problem in this codebase; there's no reliable signal yet for
+which prior deploy was actually healthy. A wrong guess here doesn't fail
+loudly, it rolls production back to a state nobody chose. Requiring the
+person configuring the actuator to say explicitly which deployment is the
+fallback is more work up front and a much safer failure mode.
+
+The endpoints themselves came from Vercel's and Netlify's own API docs,
+not memory — worth stating plainly, because Vercel's actual rollback
+endpoint (`POST /v1/projects/{projectId}/rollback/{deploymentId}`) is not
+the one a language model would guess from the general shape of their API.
+
+## The stretch goal that wasn't a stretch
+
+PagerDuty turned out to be the simplest of the five: the Events API v2 is
+one POST, `dedup_key` set to the incident ID so a retry pages once
+instead of twice. It had been planned as the cut-if-short stretch goal
+for the session; it shipped anyway because there was nothing left to cut
+around.
+
+Running `/spec-drift` against the finished session caught two stale
+findings — `CLAUDE.md`'s leftover "actuators are stubs in v1" line, and
+the spec-drift skill's own identity-invariant table, which would have
+flagged every future actuator as scope creep against a description that
+no longer matched reality. `ACTUATOR_SPEC.md` got rewritten to the actual
+contract. The README stayed untouched on purpose — its "stubbed actuator
+layer" language is still accurate for what's live on npm today, and
+v2.0's actuators aren't released yet.
+
+v2.0's five actuators are built and tested. What's next is the piece that
+makes RollbackActuator and PagerDutyActuator actually usable: a real
+confirm-and-run path for a human to approve what's sitting in the audit
+trail as `awaiting_confirmation`.

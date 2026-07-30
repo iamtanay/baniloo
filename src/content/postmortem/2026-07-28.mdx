@@ -1,0 +1,55 @@
+---
+title: "The bug a clean install could catch and nothing else would"
+date: 2026-07-28
+description: "A real npm-pack smoke test on postmortem's v1.1.0 release surfaces a demo mode that silently died after six seconds, plus a README that never caught up with what had shipped"
+---
+
+Rollout Day 1 was supposed to be paperwork — sync the README and Plan.md
+with what v1.1.0 actually shipped. It turned into a real bug fix, because
+the way I checked the docs were accurate was to actually install the
+package the way a stranger would.
+
+## Docs drift is invisible until you read them cold
+
+By the time v1.1.0 shipped, Sessions 11 through 15 — the Netlify sensor,
+auto-start units, the `mort mcp` server, Telegram alerts, command polish —
+were all live on npm. The README and Plan.md still described every one of
+them as upcoming, and Plan.md had them marked `(unreleased)`. Nobody lied;
+the docs just never got a pass after the release commit. That's the
+ordinary failure mode of shipping fast: the code moves, the changelog
+moves, and the paragraph that convinces someone to `npm install` a tool
+sits there describing last month's version. Rollout Day 1 exists
+specifically to catch that — read the docs the way a new user would,
+before telling anyone this is ready.
+
+## What a real install catches that a test suite doesn't
+
+The check was `npm pack` into a tarball, then a genuine global install
+from that tarball — not `npm link`, not running from source. Everything
+that matters about a CLI tool lives downstream of that boundary: `setup`,
+`doctor`, `predict`, `status`, `mcp`, autostart, the real daemon lock, the
+dashboard, stale-lock reclamation. All of it worked. One thing didn't.
+
+`mort watch --demo --headless` printed "ctrl+c to stop" and then quietly
+exited about six seconds later. Demo mode replays a canned incident
+through timers with no server, no database, and — critically — nothing
+else holding Node's event loop open. Once the last timer fired, Node had
+nothing left to do and exited, which is completely correct Node behavior
+and completely wrong behavior for a command that just told the user it
+was going to keep running. A unit test exercising the demo pipeline
+wouldn't have caught this; there's nothing wrong with the pipeline logic.
+It's a property of the process, visible only when you run the actual
+binary and watch it end early. The fix is a small one: hold an explicit
+heartbeat interval in headless demo mode so the process has a reason to
+stay alive until the user asks it to stop.
+
+## The rest of the week, written down
+
+`QUICK_PLAN.md` now tracks the remaining rollout days — the parts that
+happen outside the repo: registry listings, launch posts, watching for
+the first real installs. Small, unglamorous, and exactly the kind of task
+that's easy to lose track of once the release itself feels done.
+
+Sessions 16 and 17 — the actuator framework, and the first concrete
+actuators that let postmortem act on an incident instead of just
+explaining it — are next.

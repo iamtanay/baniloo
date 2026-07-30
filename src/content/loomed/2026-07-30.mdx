@@ -1,0 +1,60 @@
+---
+title: "A signature the institution can check without opening the vault"
+date: 2026-07-30
+description: "LooMed's consent tokens carry their own patient signature, independent of the chain — implementing spec §10.1's sign-then-embed flow for scoped, time-bound record access"
+---
+
+Phase 3 opens with `loomed share`: a patient can now issue a scoped,
+time-bound consent token to an institution, sign it, and hand it over —
+without the institution ever needing to touch the patient's vault or
+chain to verify it's real. 183 tests pass. This is the first Phase 3
+feature, and it's also the first time LooMed has a document whose
+authenticity travels independently of the commit chain that contains it.
+
+## Two signatures, two jobs
+
+Every commit in LooMed is already signed — that's chain integrity, the
+guarantee that this commit belongs where it sits. A consent token needed
+something different: a signature the *institution* can check on its own,
+holding nothing but the token JSON, with no access to the patient's vault
+or commit history at all. So `ConsentToken` carries its own
+`patient_signature`, computed over the canonical bytes of every other
+field, independent of whatever commit eventually wraps it.
+
+The token still gets wrapped in a `consent_token` commit and chained onto
+the patient's vault, because the vault needs its own record that a token
+was issued — that's the audit trail. But the two signatures answer two
+different questions. The commit signature says "this belongs in my
+chain." The token's own signature says "I, the patient, issued exactly
+this grant" — verifiable by anyone holding the raw token, forever,
+independent of the chain moving on around it. `prepare_token()` /
+`PendingConsentToken::finalise()` mirrors the existing commit builder's
+sign-then-embed shape deliberately, because the pattern already proved
+itself: assemble everything except the signature, hand back the exact
+bytes to sign, embed the result.
+
+## A wire format that isn't nested JSON
+
+Spec §10.1 defines scope as a flat string — `full_record`,
+`record_type:lab_result`, `commit:sha256:...` — not a tagged JSON object.
+`ConsentScope` gets a custom `Serialize`/`Deserialize` pair that goes
+through `Display`/`FromStr` rather than serde's default enum
+representation, so the wire bytes match the spec's schema exactly instead
+of what Rust's derive macros would produce by default. `date_range` is in
+the spec too, deferred past v1.0 — the type doesn't have a variant for it
+yet, which is the honest way to defer something rather than half-wiring it.
+
+## The test that caught a passphrase prompt hanging
+
+`duration_hours > 0` was originally checked inside `prepare_token()` —
+after `loomed share` had already opened the vault and prompted for a
+passphrase. A test with no `LOOMED_PASSPHRASE` set just hung waiting for
+terminal input that would never come, for a command that was always going
+to fail on its duration argument. The fix is coding standard §0.6 applied
+literally: every input gets validated in `share.rs` before the vault
+opens or anything is prompted for, so a bad `--duration` fails in
+milliseconds instead of hanging on stdin.
+
+Next is token enforcement — expiry, single-use, and scope checks at
+presentation time, which is a different problem from issuance and lands
+with write-token support in a later session.

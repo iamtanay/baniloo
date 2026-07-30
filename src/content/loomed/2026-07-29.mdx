@@ -1,0 +1,67 @@
+---
+title: "The spec's own example IDs would have failed the checksum"
+date: 2026-07-29
+description: "Full Crockford Base32 + CRC-8 validation for LooMed participant IDs — and the illustrative examples in the spec and README that turned out to be fake"
+---
+
+Phase 2 Session 3 closes out with 161 tests passing and a small, slightly
+embarrassing discovery: every example participant ID in the spec, the
+README, and CLAUDE.md was illustrative in the worst sense. They looked
+like valid LooMed IDs. None of them would have passed the validator I
+wrote this session, because the checksum in every one of them was made up.
+
+## A checksum is not a format check
+
+`ParticipantId::new()` previously did the minimum: check the type prefix,
+check there were enough `-`-delimited segments, done. Spec §3.1 asks for
+more — every ID ends in a two-character checksum, a CRC-8 (polynomial
+`0x07`, no reflection) computed over every segment that precedes it and
+rendered as two Crockford Base32 digits. That's not a cosmetic addition.
+A format check catches a garbled string. A checksum catches a *correct-looking*
+string with one wrong character — the case that actually matters, because
+that's what a mistyped or partially-copied participant ID looks like in
+the wild.
+
+The test that made this concrete: take a valid clinician ID,
+`LMD-APL-3NKWQ7HZRC-5N`, and mistype the scope segment — `APL` to `APM`.
+Same length, same alphabet, still looks plausible. The checksum, computed
+over type + scope + base32 ID, catches it immediately. That's the point
+of hashing the *preceding* segments instead of just the random ID portion:
+a transcription error in the institution's scope code is just as
+dangerous as one in the random segment, and the old validator would have
+silently accepted it.
+
+## Regenerating the fixtures
+
+Once `compute_checksum` existed, I ran it against the five illustrative
+IDs already sitting in the spec's own "Examples" section —
+`LMP-7XKQR2MNVB-F4`, `LMD-APL-3NKWQ7HZRC-8A`, and so on. All five failed.
+They'd been typed by hand at some point in an earlier phase, formatted
+correctly, never actually run through a checksum algorithm because the
+algorithm didn't exist yet. Every fixture across `loomed-core`,
+`loomed-cli`, `loomed-store`, the README, and CLAUDE.md needed the same
+treatment: regenerate against the real function, not eyeball a
+Base32-looking string.
+
+## Two smaller, quieter wins
+
+`loomed log` now prints a one-line typed summary under each commit —
+`FBG: 98.5 mg/dL`, `Metformin 500mg × 30d` — built from the six clinical
+payload structs added in the last session. It fails soft: an empty
+payload or a mismatched type just omits the line rather than dumping raw
+JSON. And `loomed show` now surfaces `pre_sync_previous_hash` and
+`pre_sync_commit_id` when a commit has been through Sync Rebase, so
+`loomed show` finally tells the whole sync story instead of the parts
+that predate the fork.
+
+| Crate | Tests |
+|---|---|
+| `loomed-core` | 60 |
+| `loomed-crypto` | 17 |
+| `loomed-store` | 18 |
+| `loomed-sync` | 15 |
+| `loomed-cli` | 51 |
+| **Total** | **161, 0 failures** |
+
+Next is Phase 3: consent tokens, and the first release plan that separates
+"what ships in v1.0" from the full phase roadmap.
