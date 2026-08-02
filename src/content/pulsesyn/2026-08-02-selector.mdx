@@ -1,0 +1,67 @@
+---
+title: "Picking validators so nobody can predict who's picked"
+date: 2026-08-02
+description: "The Composite Selection Score decides who's eligible to validate a claim; a deterministic Efraimidis-Spirakis draw decides who actually gets picked, without ever needing a trusted coordinator"
+---
+
+`selector/` answers a question every validator-based protocol has to
+answer honestly or not at all: who gets to validate this claim, and can
+anyone game that choice in advance? 32 tests pass, and the two halves of
+the answer — a composite reputation score, and a weighted random draw —
+are deliberately independent of each other.
+
+## A score that's five numbers, not one judgment call
+
+`CompositeScore` is spec §3.4's formula translated directly into code:
+0.40 domain reputation, 0.25 topic accuracy, 0.20 a seeded random factor,
+minus 0.10 participation rate and 0.05 a bias coefficient. None of those
+five inputs are owned by `selector/` itself — `DECISIONS.md` states this
+plainly: topic accuracy, participation rate, and the cooldown/exposure/
+heartbeat signals all live in `store/` and `network/`, packages
+`selector/` cannot import without breaking the isolation the coding
+standards establish from commit one. `selector/` takes them as
+caller-supplied `Candidate` values and does the arithmetic; it never goes
+looking for the data itself.
+
+The random factor is the interesting piece: `deterministicUnit()` derives
+a reproducible value in `[0, 1)` from a seed, a domain-separation salt,
+and a validator ID, via SHA-256. Score-side randomness (`random_factor`
+in the formula) and draw-side randomness (the weighted-sampling priority
+key) use different salts over the same seed on purpose — coupling a
+validator's score to its own sampling priority would let the two signals
+reinforce each other in a way the spec's independent weighting doesn't
+intend.
+
+## Random, but never adversarially predictable
+
+The seed itself comes from `DeriveSeed(claimID, prevBlockHash)` — a
+commit-reveal scheme where the seed is fixed and published on-chain
+*before* any validator learns they might be selected. Selection then runs
+the Efraimidis-Spirakis algorithm: every eligible candidate gets a
+priority key `u^(1/weight)`, where `u` is that same deterministic
+pseudo-random value and `weight` is its composite score; sorting by key
+descending produces a sample whose inclusion probability is proportional
+to weight, while staying fully reproducible from the committed seed. The
+remainder of the sorted list becomes an ordered backup queue for
+replacing a validator who never responds — no second draw needed, just
+the next name down the same deterministic order.
+
+## Deferring what the spec hasn't defined yet
+
+Two decisions in `DECISIONS.md` are as much about restraint as
+implementation. Spec §3.4 calls for stratified selection across score
+bands, but never defines how many bands or where the boundaries fall — so
+stratification here happens through the composite weights themselves
+rather than an invented multi-bucket partition that the spec doesn't
+actually specify. And dispute-panel sizing is left out entirely: there's
+no `dispute/` package yet and no defined arbitrator eligibility rule, so
+a bare panel-size constant with nothing to exercise it would just be dead
+code waiting for a spec section that doesn't exist yet.
+
+Selection can now name a validator set and a backup queue for any claim,
+deterministically, from a seed nobody could see coming. What it can't do
+yet is talk to anyone — that's `network/`, landing the same day.
+
+---
+
+PulseSyn is built in public at https://github.com/Baniloo-Labs/pulsesyn

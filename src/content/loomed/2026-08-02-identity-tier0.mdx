@@ -1,0 +1,62 @@
+---
+title: "The seam for an identity tier that doesn't exist yet"
+date: 2026-08-02
+description: "IdentityProvider gives LooMed one interface every future identity tier can implement with no call-site changes — and a BIP-39 recovery phrase whose entropy is the signing key, not a wrapper around it"
+---
+
+Phase 4-lite Session 1 doesn't add a new identity tier. It adds the
+interface the spec says every tier will eventually implement, then proves
+it against the one tier LooMed already has.
+
+## A trait for tiers that don't exist yet
+
+Spec §4 describes four identity tiers a patient might use to control
+their vault: software passphrase, a national digital ID, a hardware
+secure enclave, a Shamir custodian quorum. Only the first exists in
+LooMed today. `IdentityProvider` is the seam that lets that stay true
+without locking the codebase in — `sign()`, `public_key_hex()`, `tier()`,
+three methods, and every call site that needs a signature (`loomed
+commit`, `loomed share`, `loomed revoke`, `loomed key rotate`) depends
+only on the trait. `PassphraseIdentityProvider` is the sole v1.0
+implementation, wrapping the deterministic `derive_keypair` Phase 1
+already built. When Tier 1 arrives, it's a new struct implementing the
+same three methods — not a rewrite of every command that signs something.
+
+The rename that ships alongside it is small but deliberate:
+`vault.toml`'s `idp_type` and the genesis commit's payload go from
+`"passphrase"` to `"software_passphrase"`, matching the Tier 0 vocabulary
+this session introduces. Pre-1.0, that's a clean rename, not a migration
+— there's no installed base whose existing vaults need to keep reading
+the old string.
+
+## Recovery that doesn't wrap the key, doesn't hide it
+
+The other half of this session is a BIP-39 24-word recovery mnemonic,
+and the detail worth stating plainly is what the mnemonic actually
+encodes. `MNEMONIC_ENTROPY_LEN` is 32 bytes — 256 bits — which is not a
+convenient round number chosen for a checksum wrapper, it's exactly the
+length of an ed25519 signing key seed. The mnemonic's entropy *is* the
+seed, directly, with no intermediate hash or key-derivation step between
+them. Recovery is a lossless round trip: words to entropy to seed to
+keypair, and back, with nothing lost or transformed along the way that
+would need to stay in sync with itself.
+
+`loomed init` now generates and displays this phrase exactly once, inside
+a clearly marked banner, and requires the user to type "yes" before
+anything touches disk — the same confirmation discipline the existing
+passphrase-entry flow already used, applied to a second secret that's
+just as unrecoverable if lost. It's skipped automatically when
+`LOOMED_PASSPHRASE` is set, matching how passphrase confirmation already
+behaves in non-interactive test runs.
+
+`LooMedKeypair::signing_key_bytes()` and `keypair_from_seed()` are what
+make the round trip possible on the code side — exposing and
+reconstructing the raw seed is normally exactly the kind of thing coding
+standards §0.4 says never to do, so both are scoped narrowly to this one
+recovery path and never logged or persisted outside the one-time
+display.
+
+14 tests land across `loomed-crypto` and `loomed-cli` for this. What's
+next is the harder half of Tier 0's story: what happens when a passphrase
+needs to change without breaking every historical record it used to
+encrypt — key rotation, the same day's next session.

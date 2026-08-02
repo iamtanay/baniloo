@@ -1,0 +1,72 @@
+---
+title: "Rotating the key that isn't the key you think it is"
+date: 2026-08-02
+description: "A vault passphrase derives two different keys — a signing key and an AES-256 encryption key. Key rotation only wanted to change one of them"
+---
+
+Phase 4-lite Session 2 starts from a regression that never shipped
+because it was caught in design instead of in production: the obvious way
+to rotate a signing key — re-derive it from a new passphrase — quietly
+breaks decryption of every `.lmc` file the vault has ever written.
+
+## Two keys, one salt, one bad idea
+
+`derive_keypair` takes a passphrase and an Argon2id salt (`argon2_salt`)
+and produces a signing keypair. The same passphrase and salt also feed
+AES-256-GCM key derivation for encrypting every record on disk. Change
+the passphrase to rotate the signing key, and the encryption key changes
+with it — permanently, since there's no re-encryption step to catch every
+historical `.lmc` file up to the new key. That's not a documented
+limitation to write around; it's a real bug, caught before `loomed key
+rotate` existed to ship it.
+
+The fix decouples the two derivations. `VaultMetadata` gains a second,
+independent salt — `signing_salt: Option<String>` — `None` before any
+rotation (the signing key still derives from `argon2_salt`, byte-for-byte
+identical to Phase 1, so existing vaults need zero migration), `Some(salt)`
+after one (a freshly generated salt, unrelated to `argon2_salt`).
+`argon2_salt` itself is never touched by rotation, so AES and every
+historical record stay exactly as encrypted as they always were. The
+passphrase doesn't change either — changing it would still break AES
+decryption of history, so rotation only ever changes which signing key
+that same passphrase happens to derive.
+
+## A chain that no longer has one key
+
+Decoupling the salts creates a second problem: `verify_chain` assumed one
+public key for an entire chain, and that assumption breaks the moment a
+chain can contain a rotation. `resolve_signing_keys()` walks the chain
+forward from genesis, switching the active key whenever it crosses a
+`KeyRotation` commit carrying a `new_public_key` — except the genesis
+commit's own `KeyRotation` payload, which only carries `public_key` and
+so never triggers a switch on itself. `verify_chain` now resolves one key
+per commit instead of one key for the whole chain.
+
+`loomed verify` had to become rotation-aware for the same reason.
+`--chain` mode now reads the *genesis* commit's own embedded public key
+as its starting point, not `vault.metadata.public_key` — which reflects
+the current key after any rotation, and would be the wrong key to check
+pre-rotation commits against. Single-commit verification now has to load
+the full chain and use `resolve_signing_keys` to find which key was
+active at that commit's position, since no commit can be verified in
+isolation anymore once rotation exists in the chain at all.
+
+## The part that stays deliberately narrow
+
+`loomed key rotate` writes a self-signed `key_rotation` commit — the old
+key signs, attesting to the new one, per spec §12.1 step 3 — and also
+writes a `token_revocation` commit for every still-active consent token,
+reusing the same `token_chain::scan_all_tokens` the audit-and-revocation
+session built earlier that day. Invalidating every outstanding token on
+rotation
+is deliberate and auditable, not an incidental side effect of a signature
+that would no longer match. What's explicitly out of scope, stated in
+`key.rs`'s module doc and printed by the command itself: historical
+records stay encrypted under the original key, vault re-encryption (spec
+§12.1 step 5) is deferred past v1.0, and rotation is patient-initiated
+only — no custodian quorum, no re-authentication tier, consistent with
+Tier 0.
+
+240 tests pass, up from 213 at the start of the day. Three sessions —
+audit and revocation, the identity trait, key rotation — land in one
+commit, each solving a problem the one before it exposed.

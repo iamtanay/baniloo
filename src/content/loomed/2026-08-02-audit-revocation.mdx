@@ -1,0 +1,59 @@
+---
+title: "Audit is a view, not a ledger"
+date: 2026-08-02
+description: "loomed audit and loomed revoke don't add a new commit log — they're both derived from the same chain scan that already answers whether a consent token has been used"
+---
+
+Phase 3 Session 3 closes out consent tokens with the two commands that
+make issuance and enforcement actually operable: `loomed revoke` to kill
+a token early, and `loomed audit` to see what's been granted. Neither
+adds a new source of truth. Both read the one that already exists.
+
+## One scan, three callers agree
+
+`commit.rs`'s `find_and_authorize_token` used to do its own bespoke walk
+of the chain to check whether a presented token had already been spent.
+That walk now lives in a new shared module, `token_chain.rs`, behind two
+functions — `scan_all_tokens()` and `find_token()` — and `loomed commit
+--token`, `loomed revoke`, and `loomed audit` all call into it instead of
+each maintaining their own idea of what "used" or "revoked" means. That
+matters more than it sounds: three independent traversals of the same
+chain are three independent chances for one of them to disagree with the
+other two about a token's state. One scan, three callers, one answer.
+
+Revocation itself is a `token_revocation` commit — no separate flag or
+side table, just another entry in the same signed chain, checked the same
+way a use is checked. `loomed revoke <token_id>` validates the token_id
+format before opening the vault (the same fail-fast discipline `loomed
+commit --token` already established), confirms the token exists and
+isn't already revoked, then writes the revocation self-authored.
+
+## Deriving the trail instead of storing it
+
+Spec §11 defines an `access_event` schema with fields like
+`accessed_by_name` and `records_accessed`. `loomed audit` doesn't
+implement that schema, and says so directly in its own module doc rather
+than pretending otherwise: `accessed_by_name` needs a participant
+registry that doesn't exist until Phase 5, and `records_accessed` only
+matters once a single token can be presented more than once — which v1's
+single-use tokens never are. For this version, "issued" and "consumed"
+are already a 1:1 relationship for every write, so there's nothing
+`records_accessed` would tell you that the issuance and the consuming
+commit don't already show.
+
+So `loomed audit` is a projection, not a new commit type: one entry per
+issued token — active, used, expired, or revoked — built entirely from
+data three other commit types already put in the chain, optionally
+filtered with `--entity <participant_id>`. Adding a real access-event log
+later, once read-token presentation actually exists as a flow, is a
+schema decision that can wait until there's a real event to log; building
+it now against a command that doesn't exist yet would be guessing.
+
+17 new tests cover this, including cross-command proof that a token
+revoked via `loomed revoke` is then rejected by `loomed commit --token` —
+the two commands sharing one scan is what makes that guarantee automatic
+rather than something each command has to separately get right.
+
+Consent tokens are now issuable, enforceable, auditable, and revocable.
+What's still open is everything upstream of a token even mattering:
+Phase 4-lite's identity work, landing the same day, starts on that.

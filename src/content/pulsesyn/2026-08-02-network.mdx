@@ -1,0 +1,64 @@
+---
+title: "Nine message types the spec never actually listed"
+date: 2026-08-02
+description: "PulseSyn's libp2p peer layer ships gossipsub broadcast and Kademlia DHT discovery — plus nine message types derived by walking the spec's protocol flow end to end, since the spec names a process, never a wire format"
+---
+
+`network/` is where PulseSyn stops being a set of Go packages that agree
+on data structures and starts being nodes that can actually talk to each
+other: node identity, signed message envelopes, gossipsub broadcast, and
+DHT-based peer discovery. 21 tests pass, including a real two-host
+gossipsub round trip and a three-host DHT test where a node discovers a
+peer it was never directly connected to.
+
+## A message list the spec implies but never writes down
+
+The Development Plan promises "all nine message types from the spec" for
+this phase. Spec v0.1 doesn't actually enumerate any — it describes claim
+and vote schemas (§2.1–2.4) and the selection/consensus/dispute *process*
+(§3.4, §4.1, §7.1) in the abstract, with no networking chapter at all.
+The nine types here — `ClaimAnnounce`, `ValidatorSelectionNotify`,
+`SelectionConfirm`, `VoteCommit`, `VoteReveal`, `ValidationFinalized`,
+`ReadinessHeartbeat`, `DisputeFiled`, `ReplacementNotify` — come from
+walking that described process end to end and marking every point a node
+has to communicate with others: claim submission, the §3.4 selection
+pipeline's notify-and-replace steps, its confirmation window, the §4.1
+commit-reveal vote phases, the §2.4 finalized-record broadcast, the §3.3
+"online" eligibility condition (which requires an observable heartbeat),
+and §7.1 dispute filing. That walk landed on exactly nine, matching the
+plan's count without being forced to. A tenth candidate — a dedicated
+reputation-update broadcast — got cut deliberately: every node derives
+reputation changes the same way from `ValidationFinalized` plus the local
+`core/reputation` rules already in place, so a separate wire message would
+just be redundant data over the network.
+
+## A signature that authenticates without a handshake
+
+`Envelope` is the signed wire format every message type rides in. The
+sender's public key travels inside the envelope itself — `SenderPubKey`
+— so `Verify` can confirm two things independently before trusting
+anything: that the embedded `SenderID` (a libp2p peer ID) is actually
+derived from that public key, and that `Signature` verifies against the
+envelope contents under it. No prior key exchange, no separate discovery
+step to fetch someone's key before you can check whether they signed
+something — the message carries its own proof.
+
+## Borrowing a name, guarding against colliding with it
+
+The DHT gets its own protocol prefix, `/pulsesyn`, specifically so a
+PulseSyn node never interoperates with the public IPFS DHT or any other
+libp2p network sharing the same machine. A smaller, sharper gotcha showed
+up in `go.mod`: `go mod tidy` was silently resolving a long-abandoned
+`github.com/libp2p/go-libp2p/core` release candidate module instead of
+the real `/core` subdirectory of `go-libp2p` v0.49.0 — a stale
+transitive reference that would have quietly pinned the wrong package.
+An explicit `exclude` in `go.mod` forces resolution back to the real one.
+
+Selection can now name who validates a claim; the network layer can now
+carry that decision to the validators it names. What connects them —
+wiring `selector/`'s output into `ValidatorSelectionNotify` messages
+nodes actually send — is the next piece.
+
+---
+
+PulseSyn is built in public at https://github.com/Baniloo-Labs/pulsesyn
