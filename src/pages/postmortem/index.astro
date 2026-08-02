@@ -8,12 +8,12 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
 ---
 
 <Layout
-  title="Postmortem"
-  description="postmortem — AI-powered, local-first ops intelligence that lives in your terminal. It watches your deploys, git, and logs, and explains why things break using whatever AI you already have."
+  title="Postmortem CLI"
+  description="Postmortem CLI (mort) — AI-powered, local-first ops intelligence that lives in your terminal. It watches your deploys, git, and logs, and explains why things break using whatever AI you already have."
   currentPath="/postmortem"
   jsonLd={[
     projectLd('postmortem', '/postmortem'),
-    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'Postmortem', path: '/postmortem' }]),
+    breadcrumbLd([{ name: 'Baniloo', path: '/' }, { name: 'Postmortem CLI', path: '/postmortem' }]),
   ]}>
   <section class="project-page">
     <div class="project-header">
@@ -32,9 +32,9 @@ const entries = allEntries.sort((a, b) => b.data.date.valueOf() - a.data.date.va
           </a>
         </div>
       </div>
-      <h1>Postmortem ☠</h1>
+      <h1>Postmortem CLI ☠</h1>
       <p class="project-intro">
-        AI-powered ops intelligence that lives in your terminal. postmortem watches your
+        AI-powered ops intelligence that lives in your terminal. Postmortem CLI watches your
         deploys, your git, your CI, and your logs — and when something breaks, it correlates
         the events into one explanation and tells you <em>why</em>, using whatever AI you
         already have. Runs entirely on your machine: no SaaS, no account, no data leaving your box.

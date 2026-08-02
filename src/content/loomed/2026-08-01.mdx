@@ -1,0 +1,66 @@
+---
+title: "The commit is the receipt"
+date: 2026-08-01
+description: "loomed commit --token makes a consent token actually enforceable — signature, expiry, access type, and scope checked in order, with no separate marker commit needed to make it single-use"
+---
+
+Phase 3 Session 2 closes the loop Session 1 opened: a consent token that
+could only be issued now has to actually be checked. `loomed commit
+--token <token_id>` runs a real authorization decision — signature,
+expiry, access type, scope — before a token-backed write is allowed into
+the chain at all. 201 tests pass.
+
+## Four checks, in an order that matters
+
+`ConsentToken::authorize_write()` runs signature verification first, then
+expiry, then access type, then scope — and stops at the first failure
+rather than collecting all of them. That ordering isn't arbitrary: there's
+no point checking whether an expired token's scope matches if its
+signature doesn't even verify against the patient's public key, and no
+point learning a token's scope is wrong if it was never valid in the
+first place. `ConsentScope::permits_write_of()` is the scope check itself,
+and it encodes a distinction spec §10.1 draws deliberately: a
+`Commit(_)`-scoped token never authorizes a write, full stop, because
+that scope grants access to one specific *existing* commit — which is
+inherently a read-access concept. A token that can prove "you may see
+commit X" has said nothing about "you may create commit Y."
+
+## Single-use without a second commit type
+
+The obvious way to make a token single-use is a marker — some record that
+says "this token has been spent." LooMed doesn't add one. Presenting a
+token via `--token` writes a commit that carries the token's ID as its
+`AuthorizationRef`, and that commit, once it exists, *is* the permanent,
+tamper-evident record that the token was used — checking whether a token
+has already been spent is a single pass over the existing chain looking
+for a commit already carrying that ID. No new commit type, no new
+invariant to keep in sync with the chain's actual state, because the
+chain's actual state already contains the answer.
+
+## Naming the limitation instead of hiding it
+
+`commit.rs`'s module doc says plainly what this phase does not do: there
+is still only one identity in this CLI — the patient's own derived
+keypair — so a token-authorized commit ends up patient-signed, not
+institution-signed, even when a token nominally grants an institution
+write access. A real cross-participant write needs a second keypair
+belonging to the institution, which is identity-provider work scoped for
+Phase 4/5. Writing that limitation into the doc comment where the next
+person (or the next session) will actually read it is cheaper than
+discovering it by surprise later.
+
+## A lint that outran the code
+
+A small, unrelated fix landed the same day: CI's clippy had advanced to
+1.97, and `useless_borrows_in_formatting` started flagging a redundant `&`
+inside a `Debug`-formatted `assert_eq!` argument in a rebase test —
+harmless Rust that an older clippy simply hadn't caught. No behavior
+changed; the assertion is identical. It's a reminder that "the build is
+green" is a claim about a specific toolchain version, not a permanent
+fact.
+
+Enforcement is the harder half of consent tokens, and it's done. What's
+still open is the identity gap `commit.rs` names directly: real
+institution-side signing, so a token-authorized write is signed by the
+party who actually presented the token, not borrowed from the patient's
+own key.

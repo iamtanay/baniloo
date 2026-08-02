@@ -23,12 +23,13 @@ export const SAME_AS = [
 
 export const PROJECTS = {
   postmortem: {
-    name: 'Postmortem',
+    name: 'Postmortem CLI',
     org: 'labs',
     type: 'software',
     repo: 'https://github.com/Baniloo-Labs/postmortem',
     tagline: 'AI-powered ops intelligence that lives in your terminal.',
     image: '/postmortem-architecture.png',
+    alternateName: ['Postmortem', 'mort', '@postmortem-cli/mort'],
   },
   loomed: {
     name: 'LooMed',
@@ -156,6 +157,7 @@ export function projectLd(key, path, description) {
     author: { '@type': 'Person', name: AUTHOR.name, url: SITE_URL },
     ...(p.repo ? { codeRepository: p.repo, sameAs: [p.repo] } : {}),
     ...(p.image ? { image: abs(p.image) } : {}),
+    ...(p.alternateName ? { alternateName: p.alternateName } : {}),
   };
   if (p.type === 'software') {
     return {

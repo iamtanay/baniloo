@@ -12,9 +12,9 @@ export interface Idea {
 
 const ideasData: Idea[] = [
   {
-    title: 'Postmortem',
+    title: 'Postmortem CLI',
     description:
-      'AI-powered ops intelligence that lives in your terminal. It watches your deploys, git, and logs — and when something breaks, it correlates the events and tells you why, using whatever AI you already have. Local-first, no SaaS.',
+      'AI-powered ops intelligence that lives in your terminal. Postmortem CLI watches your deploys, git, and logs — and when something breaks, it correlates the events and tells you why, using whatever AI you already have. Local-first, no SaaS.',
     href: '/postmortem',
     status: 'active',
     date: '2026-06-24',
